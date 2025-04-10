@@ -12,7 +12,7 @@ public class EventsManager : MonoBehaviour
     public InputEvents inputEvents; //��Ʈ�ѷ� ��ư �Է� �̺�Ʈ
 
     public static int SceneNumber = 0;
-    GameObject player;
+    public GameObject player;
 
     private void Awake()
     {
