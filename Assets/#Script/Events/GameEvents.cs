@@ -7,12 +7,12 @@ using UnityEngine;
 
 public class GameEvents
 {
-    /*public event Action<bool> onOpenDoor; //�� ���� �̺�Ʈ
+    public event Action<bool> onOpenDoor; //�� ���� �̺�Ʈ
     public void OpenDoor(bool clicked)
     {
         if (onOpenDoor != null)
         {
             onOpenDoor(clicked);
         }
-    }*/
+    }
 }
