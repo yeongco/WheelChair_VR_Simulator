@@ -5,14 +5,13 @@ using UnityEngine.SceneManagement;
 public class EventsManager : MonoBehaviour
 {
     public static EventsManager instance { get; private set; }
-
+    public GameObject player { get; private set; }
     public QuestEvents questEvents; //����Ʈ ���� �̺�Ʈ
     public PlayerEvents playerEvents; //�÷��̾� �̵� ���� �̺�Ʈ
     public GameEvents gameEvents; //�ڵ� ȸ��, ���� �̵� �� ���� �̺�Ʈ
     public InputEvents inputEvents; //��Ʈ�ѷ� ��ư �Է� �̺�Ʈ
 
     public static int SceneNumber = 0;
-    GameObject player;
 
     private void Awake()
     {
