@@ -3079,10 +3079,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 9033900038490656022, guid: 70e29e7b77154c442af27d6cc7993121,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 6892675307933777739}
-    - targetCorrespondingSourceObject: {fileID: 9033900038490656022, guid: 70e29e7b77154c442af27d6cc7993121,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 8336792474573473672}
     - targetCorrespondingSourceObject: {fileID: 9033900038490656022, guid: 70e29e7b77154c442af27d6cc7993121,
         type: 3}
@@ -3113,23 +3109,6 @@ GameObject:
     type: 3}
   m_PrefabInstance: {fileID: 4296155697761232684}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &6892675307933777739
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5098601310879197754}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9bcaa22d55bd51e41aff35e61ffe7535, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  invertValue: 0
-  playRange: 0.2
-  move: {fileID: 0}
-  angle: {x: 90, y: 0, z: 0}
-  useLocal: 1
 --- !u!114 &8336792474573473672
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6133,10 +6112,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 9033900038490656022, guid: 70e29e7b77154c442af27d6cc7993121,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 6071119756999397139}
-    - targetCorrespondingSourceObject: {fileID: 9033900038490656022, guid: 70e29e7b77154c442af27d6cc7993121,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 5376481570623213586}
     - targetCorrespondingSourceObject: {fileID: 9033900038490656022, guid: 70e29e7b77154c442af27d6cc7993121,
         type: 3}
@@ -6161,23 +6136,6 @@ GameObject:
     type: 3}
   m_PrefabInstance: {fileID: 5821669290342377238}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &6071119756999397139
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3284361459713698304}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9bcaa22d55bd51e41aff35e61ffe7535, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  invertValue: 0
-  playRange: 0.2
-  move: {fileID: 0}
-  angle: {x: 90, y: 0, z: 0}
-  useLocal: 1
 --- !u!114 &5376481570623213586
 MonoBehaviour:
   m_ObjectHideFlags: 0
