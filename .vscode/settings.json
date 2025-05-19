@@ -56,5 +56,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "WheelChair_VR_Simulator.sln"
+    "dotnet.defaultSolution": "VirtualRealityProj.sln"
 }
