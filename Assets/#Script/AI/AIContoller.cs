@@ -1,8 +1,12 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
-
+public enum AIType
+{
+    Walking, sitting, standing
+}
 public class AIContoller : MonoBehaviour
 {
     // 나중에 걷는 것 말고 다른 상태를 추가할 것을 고려해서 FSM 구조로 짰습니다.
@@ -10,8 +14,24 @@ public class AIContoller : MonoBehaviour
     private enum AIState { Idle, Walking }
     private AIState currentState = AIState.Idle;
     #endregion
+
+    [Header("AI Settings")]
+    public AIType aiType = AIType.Walking;
     
-   
+    [Space(10)]
+    [Header("Standing option")]
+    public bool withPhone;
+    public bool withMusic;
+    
+    [Space(10)]
+    [Header("Sitting option")]
+    public bool talking1;
+    public bool talking2;
+    public bool shakingLeg;
+    public bool rubbing;
+    
+    [Space(10)]
+    [Header("Moving option")]
     public GameObject target;    // AI가 향할 목표 오브젝트 (일단 inpector 상에서 설정할 수 있게 임시 지정)
 
     private NavMeshAgent agent;
@@ -24,7 +44,12 @@ public class AIContoller : MonoBehaviour
     }
     private void Start()
     {
-        SetTarget(target.transform.position);
+        if (aiType == AIType.Walking)
+            SetTarget(target.transform.position);
+        if (aiType == AIType.sitting)
+            SetSittingAnimation();
+        if (aiType == AIType.standing)
+            SetStandingAnimation();
     }
 
     private void Update()
@@ -32,7 +57,8 @@ public class AIContoller : MonoBehaviour
         switch (currentState)
         {
             case AIState.Idle:
-                StopMovement();
+                if(aiType == AIType.Walking)
+                  StopMovement();
                 break;
             case AIState.Walking:
                 CheckGoal();
@@ -43,7 +69,7 @@ public class AIContoller : MonoBehaviour
     void CheckGoal()
     {
         // 목적지 도달 여부 확인
-        if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
+        if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance + 0.05f)
         {
             // 목적지 도달 시 idle 상태로 전환
             StopMovement();
@@ -56,14 +82,53 @@ public class AIContoller : MonoBehaviour
     {
         agent.isStopped = false;
         agent.SetDestination(position);
+        if (withPhone)
+        {
+            animator.SetBool("phone", false);
+        }
         animator.SetBool("walking", true);
         currentState = AIState.Walking;
     }
 
     void StopMovement()
     {
-        agent.isStopped = true;
-        animator.SetBool("walking", false);
+        if (aiType == AIType.Walking)
+        {
+            agent.isStopped = true;
+            animator.SetBool("walking", false);
+            if (withPhone)
+            {
+                animator.SetBool("phone", true);
+            }
+        }
         currentState = AIState.Idle;
+    }
+
+    void SetSittingAnimation()
+    {
+        if (shakingLeg)
+        {
+            animator.SetBool("shaking", true);
+        } else if (talking1)
+        {
+            animator.SetBool("talk1", true);
+        } else if (talking2)
+        {
+            animator.SetBool("talk2", true);
+        } else if (rubbing)
+        {
+            animator.SetBool("rubbing", true);
+        }
+    }
+    
+    void SetStandingAnimation()
+    {
+        if (withMusic)
+        {
+            animator.SetBool("music", true);
+        } else if (withPhone)
+        {
+            animator.SetBool("phone", true);
+        }
     }
 }
