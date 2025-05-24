@@ -2163,7 +2163,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &347687830
 Transform:
   m_ObjectHideFlags: 0
@@ -5609,7 +5609,7 @@ PrefabInstance:
         type: 3}
       propertyPath: OnStartNarration
       value: 
-      objectReference: {fileID: 8300000, guid: 7a54a12aa474f421a865849c513d269b, type: 3}
+      objectReference: {fileID: 8300000, guid: 9e7196d2d6ff047969f47e1539840629, type: 3}
     - target: {fileID: 7593989801779563776, guid: 5c7db05832108cb41a8be037b1221adf,
         type: 3}
       propertyPath: OnStepStart.m_PersistentCalls.m_Calls.Array.size
@@ -10335,6 +10335,14 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7824559485551253617, guid: f399cec36063a40dea58cd41ea178109,
+        type: 3}
+      propertyPath: m_text
+      value: "\uC548\uB155\uD558\uC138\uC694, VR \uD720\uCCB4\uC5B4 \uC774\uB3D9\uCCB4\uD5D8\uC5D0
+        \uC624\uC2E0\uAC78 \uD658\uC601\uD569\uB2C8\uB2E4. \n\uC758\uC790\uC5D0 \uC798
+        \uCC29\uC11D\uD588\uB294\uC9C0, HMD\uB294 \uC798 \uB9DE\uAC8C \uCC29\uC6A9\uD588\uB294\uC9C0
+        \n\uB2E4\uC2DC \uD55C \uBC88 \uD655\uC778\uD574\uC8FC\uC138\uC694"
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
