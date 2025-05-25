@@ -17,6 +17,17 @@ public class AILookAtPlayer : MonoBehaviour
     private void Awake()
     {
         //aimConstraint = GetComponent<MultiAimConstraint>();
+        player = EventsManager.instance.player.GetComponent<Transform>();
+
+        // spine에 플레이어 설정 (40%)
+        var spineSources = new WeightedTransformArray();
+        spineSources.Add(new WeightedTransform(player, 1f));
+        spineAimConstraint.data.sourceObjects = spineSources;
+
+        // head에도 플레이어 설정 (100%)
+        var headSources = new WeightedTransformArray();
+        headSources.Add(new WeightedTransform(player, 1f));
+        headAimConstraint.data.sourceObjects = headSources;
     }
 
     // Start is called before the first frame update
