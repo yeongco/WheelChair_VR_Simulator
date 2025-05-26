@@ -773,16 +773,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3563470667008408934, guid: 7c6bc90c1b7d2ee4bae3d3316fe70744,
         type: 3}
-      propertyPath: rightPose.fingerPoses.Array.data[4].localRotations.Array.data[0].y
-      value: 0.5291872
-      objectReference: {fileID: 0}
-    - target: {fileID: 3563470667008408934, guid: 7c6bc90c1b7d2ee4bae3d3316fe70744,
-        type: 3}
-      propertyPath: rightPose.fingerPoses.Array.data[4].localRotations.Array.data[1].w
-      value: 0.99310607
-      objectReference: {fileID: 0}
-    - target: {fileID: 3563470667008408934, guid: 7c6bc90c1b7d2ee4bae3d3316fe70744,
-        type: 3}
       propertyPath: rightPose.fingerPoses.Array.data[4].localRotations.Array.data[1].x
       value: 0.012234598
       objectReference: {fileID: 0}
