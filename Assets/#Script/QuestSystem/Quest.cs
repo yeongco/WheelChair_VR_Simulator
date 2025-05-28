@@ -96,7 +96,7 @@ public class Quest : MonoBehaviour
         }
         else //���� ������ ���� ���
         {
-            Debug.Log("�������̸� ���� ����Ʈ ��ȣ : " + currentQuestStepIndex);
+            //Debug.Log("�������̸� ���� ����Ʈ ��ȣ : " + currentQuestStepIndex);
             EventsManager.instance.questEvents.FinishQuest(this); //����Ʈ �Ϸ� �̺�Ʈ ȣ��
         }
     }
