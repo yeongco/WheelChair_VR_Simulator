@@ -6,7 +6,13 @@ public class MoveStep : QuestStep
 {
     [Header("이동 설정")]
     [Tooltip("목표 위치에 도달했는지 확인할 자식 오브젝트")]
-    public GameObject targetObject;
+    public GameObject player;
+
+    private void OnEnable()
+    {
+        if (player == null)
+            player = EventsManager.instance.player;
+    }
 
     private void OnTriggerEnter(Collider other)
     {

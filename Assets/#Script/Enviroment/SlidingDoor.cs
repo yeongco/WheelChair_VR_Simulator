@@ -48,6 +48,7 @@ public class SlidingDoor : MonoBehaviour
 
     private IEnumerator MoveDoor(Vector3 target, bool opening)
     {
+        Debug.Log(gameObject + " " + target);
         Vector3 start = transform.localPosition;
         float elapsed = 0f;
 
