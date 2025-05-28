@@ -13,11 +13,19 @@ public class AILookAtPlayer : MonoBehaviour
     public float weightSpeed = 2f; // Weight 변화 속도
     
     private float targetWeight = 0f;
+    
+    [Header("Sound Settings")]
+    public AudioSource audioSource;
+    public AudioClip soundClip;
+    float soundTriggerDistance = 2f;
+    
+    private bool hasPlayedSound = false;
 
     private void Awake()
     {
         //aimConstraint = GetComponent<MultiAimConstraint>();
         player = EventsManager.instance.player.GetComponent<Transform>();
+        audioSource = GetComponent<AudioSource>();
 
         // spine에 플레이어 설정 (40%)
         var spineSources = new WeightedTransformArray();
@@ -40,10 +48,21 @@ public class AILookAtPlayer : MonoBehaviour
     {
         float distance = Vector3.Distance(player.position, transform.position);
 
+        // 고개 돌리기
         float targetWeight = distance < lookDistance ? 1f : 0f;
 
         // 둘 다 부드럽게 변화
         spineAimConstraint.weight = Mathf.Lerp(spineAimConstraint.weight, targetWeight * 0.45f, Time.deltaTime * weightSpeed); // 상체는 40%만
         headAimConstraint.weight = Mathf.Lerp(headAimConstraint.weight, targetWeight, Time.deltaTime * weightSpeed); // 머리는 100%
+        
+        // 효과음 재생 조건 (한 번만)
+        if (distance < soundTriggerDistance && !hasPlayedSound)
+        {
+            if (audioSource != null && soundClip != null)
+            {
+                audioSource.PlayOneShot(soundClip);
+                hasPlayedSound = true;
+            }
         }
+    }
 }

@@ -22,6 +22,8 @@ public class AIContoller : MonoBehaviour
     [Header("Standing option")]
     public bool withPhone;
     public bool withMusic;
+    public bool talk1;
+    public bool talk2;
     
     [Space(10)]
     [Header("Sitting option")]
@@ -129,6 +131,12 @@ public class AIContoller : MonoBehaviour
         } else if (withPhone)
         {
             animator.SetBool("phone", true);
+        } else if (talk1)
+        {
+            animator.SetBool("talk1", true);
+        } else if (talk2)
+        {
+            animator.SetBool("talk2", true);
         }
     }
 }
