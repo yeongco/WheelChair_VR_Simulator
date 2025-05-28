@@ -31,6 +31,8 @@ public class AIContoller : MonoBehaviour
     public bool talking2;
     public bool shakingLeg;
     public bool rubbing;
+    public bool girl;
+    public bool simple;
     
     [Space(10)]
     [Header("Moving option")]
@@ -120,6 +122,13 @@ public class AIContoller : MonoBehaviour
         } else if (rubbing)
         {
             animator.SetBool("rubbing", true);
+        } else if (girl)
+        {
+            animator.SetBool("girl", true);
+        }
+        else
+        {
+            animator.SetBool("simple", true);
         }
     }
     
