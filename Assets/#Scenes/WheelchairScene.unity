@@ -510,12 +510,12 @@ PrefabInstance:
     - target: {fileID: 4023612686999554150, guid: 9380ee72949c4fa47b667a8971e1f9da,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: -34.51
+      value: -35.79
       objectReference: {fileID: 0}
     - target: {fileID: 4023612686999554150, guid: 9380ee72949c4fa47b667a8971e1f9da,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.451
+      value: -0.61
       objectReference: {fileID: 0}
     - target: {fileID: 4023612686999554150, guid: 9380ee72949c4fa47b667a8971e1f9da,
         type: 3}
@@ -8638,11 +8638,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   wheelchairSound: {fileID: 0}
   wheelRollingSound: {fileID: 8300000, guid: 717b0f31ab2c32742b358d0a11778b9f, type: 3}
-  minSpeed: 0.1
-  maxSpeed: 0.2
-  minPitch: 0.5
-  maxPitch: 1.5
-  volumeFadeSpeed: 2
+  minSpeed: 1
+  maxSpeed: 3
+  minPitch: 0.2
+  maxPitch: 3
+  volumeFadeSpeed: 1
 --- !u!1 &1416615467 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 507023464468710846, guid: 8f07dcc3a383bf942a90a861ac6a32f8,
