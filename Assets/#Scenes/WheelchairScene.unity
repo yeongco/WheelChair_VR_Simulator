@@ -2596,7 +2596,7 @@ GameObject:
   - component: {fileID: 337438122}
   - component: {fileID: 337438121}
   m_Layer: 0
-  m_Name: Right_frontWheel (1)
+  m_Name: Right_frontWheel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2633,14 +2633,14 @@ WheelCollider:
     targetPosition: 0.5
   m_SuspensionDistance: 0.3
   m_ForceAppPointDistance: 0
-  m_Mass: 30
+  m_Mass: 50
   m_WheelDampingRate: 0.25
   m_ForwardFriction:
     m_ExtremumSlip: 0.4
     m_ExtremumValue: 1
     m_AsymptoteSlip: 0.8
     m_AsymptoteValue: 0.5
-    m_Stiffness: 1
+    m_Stiffness: 0.8
   m_SidewaysFriction:
     m_ExtremumSlip: 0.2
     m_ExtremumValue: 1
@@ -7707,17 +7707,17 @@ PrefabInstance:
     - target: {fileID: 2212585300819099117, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
       propertyPath: m_Drag
-      value: 1.5
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 2212585300819099117, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
       propertyPath: m_Mass
-      value: 60
+      value: 80
       objectReference: {fileID: 0}
     - target: {fileID: 2212585300819099117, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
       propertyPath: m_AngularDrag
-      value: 2.5
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2212585300819099117, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
@@ -7742,7 +7742,7 @@ PrefabInstance:
     - target: {fileID: 2212585300819099118, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
       propertyPath: jointBreakForce
-      value: 8000
+      value: 5000
       objectReference: {fileID: 0}
     - target: {fileID: 2212585300819099118, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
@@ -8079,17 +8079,17 @@ PrefabInstance:
     - target: {fileID: 2212585300819099117, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
       propertyPath: m_Drag
-      value: 1.5
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 2212585300819099117, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
       propertyPath: m_Mass
-      value: 60
+      value: 80
       objectReference: {fileID: 0}
     - target: {fileID: 2212585300819099117, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
       propertyPath: m_AngularDrag
-      value: 2.5
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2212585300819099117, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
@@ -8114,7 +8114,7 @@ PrefabInstance:
     - target: {fileID: 2212585300819099118, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
       propertyPath: jointBreakForce
-      value: 8000
+      value: 5000
       objectReference: {fileID: 0}
     - target: {fileID: 2212585300819099118, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
@@ -8854,7 +8854,7 @@ GameObject:
   - component: {fileID: 1469033195}
   - component: {fileID: 1469033194}
   m_Layer: 0
-  m_Name: Left_frontWheel (1)
+  m_Name: Left_frontWheel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8891,14 +8891,14 @@ WheelCollider:
     targetPosition: 0.5
   m_SuspensionDistance: 0.3
   m_ForceAppPointDistance: 0
-  m_Mass: 30
+  m_Mass: 50
   m_WheelDampingRate: 0.25
   m_ForwardFriction:
     m_ExtremumSlip: 0.4
     m_ExtremumValue: 1
     m_AsymptoteSlip: 0.8
     m_AsymptoteValue: 0.5
-    m_Stiffness: 1
+    m_Stiffness: 0.8
   m_SidewaysFriction:
     m_ExtremumSlip: 0.2
     m_ExtremumValue: 1
