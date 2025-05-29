@@ -2920,6 +2920,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 0}
 --- !u!82 &149651998
 AudioSource:
@@ -6037,6 +6039,8 @@ MonoBehaviour:
   talking2: 1
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 558919428}
 --- !u!195 &308715308
 NavMeshAgent:
@@ -6987,6 +6991,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 0}
 --- !u!82 &370906547
 AudioSource:
@@ -8866,6 +8872,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 0}
 --- !u!82 &510095659
 AudioSource:
@@ -9226,6 +9234,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 558919428}
 --- !u!82 &521116821
 AudioSource:
@@ -10187,6 +10197,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 558919428}
 --- !u!82 &578547587
 AudioSource:
@@ -10496,6 +10508,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 2060261836}
 --- !u!195 &586362844
 NavMeshAgent:
@@ -13579,6 +13593,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 558919428}
 --- !u!195 &842851036
 NavMeshAgent:
@@ -13929,6 +13945,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 558919428}
 --- !u!82 &858485921
 AudioSource:
@@ -14760,6 +14778,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 0}
 --- !u!82 &949359202
 AudioSource:
@@ -15265,6 +15285,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 1
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 0}
 --- !u!82 &955570984
 AudioSource:
@@ -17395,6 +17417,8 @@ MonoBehaviour:
   talking2: 1
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 558919428}
 --- !u!82 &1118030380
 AudioSource:
@@ -21359,6 +21383,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 558919428}
 --- !u!195 &1351089636
 NavMeshAgent:
@@ -21691,6 +21717,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 0}
 --- !u!114 &1362453263
 MonoBehaviour:
@@ -23811,6 +23839,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 0}
 --- !u!82 &1504843677
 AudioSource:
@@ -27988,6 +28018,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 558919428}
 --- !u!82 &1730085565
 AudioSource:
@@ -29748,6 +29780,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 0}
 --- !u!82 &1797541324
 AudioSource:
@@ -30317,6 +30351,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 0}
 --- !u!114 &1823665978
 MonoBehaviour:
@@ -30913,6 +30949,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 0}
 --- !u!82 &1851988053
 AudioSource:
@@ -32342,6 +32380,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 0}
 --- !u!82 &1911996013
 AudioSource:
@@ -33475,6 +33515,8 @@ MonoBehaviour:
   talking2: 0
   shakingLeg: 0
   rubbing: 0
+  girl: 0
+  simple: 0
   target: {fileID: 558919428}
 --- !u!82 &1984233412
 AudioSource:
