@@ -149,7 +149,7 @@ public class AIContoller : MonoBehaviour
             animator.SetBool("talk2", true);
         } else if (wall)
         {
-             animator.SetBool("wall", true);
+            animator.SetBool("wall", true);
         }
     }
 }

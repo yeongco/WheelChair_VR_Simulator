@@ -17,7 +17,7 @@ public class AILookAtPlayer : MonoBehaviour
     [Header("Sound Settings")]
     public AudioSource audioSource;
     public AudioClip soundClip;
-    float soundTriggerDistance = 2f;
+    float soundTriggerDistance = 2.5f;
     
     private bool hasPlayedSound = false;
 
@@ -60,8 +60,8 @@ public class AILookAtPlayer : MonoBehaviour
         {
             if (audioSource != null && soundClip != null)
             {
-                audioSource.PlayOneShot(soundClip);
                 hasPlayedSound = true;
+                audioSource.PlayOneShot(soundClip);
             }
         }
     }

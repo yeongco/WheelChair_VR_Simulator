@@ -2916,6 +2916,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 0
   talk2: 0
+  wall: 0
   talking1: 0
   talking2: 0
   shakingLeg: 0
@@ -6035,6 +6036,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 0
   talk2: 0
+  wall: 0
   talking1: 0
   talking2: 1
   shakingLeg: 0
@@ -6987,6 +6989,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 0
   talk2: 0
+  wall: 0
   talking1: 0
   talking2: 0
   shakingLeg: 0
@@ -8868,6 +8871,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 0
   talk2: 0
+  wall: 0
   talking1: 0
   talking2: 0
   shakingLeg: 0
@@ -9230,6 +9234,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 0
   talk2: 1
+  wall: 0
   talking1: 0
   talking2: 0
   shakingLeg: 0
@@ -9919,7 +9924,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70b342d8ce5c2fd48b8fa3147d48d1d1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Weight: 0.78
+  m_Weight: 0.71
   m_Effectors: []
 --- !u!64 &567510197
 MeshCollider:
@@ -10193,6 +10198,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 1
   talk2: 0
+  wall: 0
   talking1: 0
   talking2: 0
   shakingLeg: 0
@@ -10504,6 +10510,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 0
   talk2: 0
+  wall: 0
   talking1: 0
   talking2: 0
   shakingLeg: 0
@@ -13589,6 +13596,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 0
   talk2: 0
+  wall: 0
   talking1: 0
   talking2: 0
   shakingLeg: 0
@@ -13941,6 +13949,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 0
   talk2: 0
+  wall: 0
   talking1: 1
   talking2: 0
   shakingLeg: 0
@@ -14774,6 +14783,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 0
   talk2: 0
+  wall: 0
   talking1: 0
   talking2: 0
   shakingLeg: 0
@@ -15281,6 +15291,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 0
   talk2: 0
+  wall: 0
   talking1: 0
   talking2: 0
   shakingLeg: 1
@@ -17413,6 +17424,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 0
   talk2: 0
+  wall: 0
   talking1: 0
   talking2: 1
   shakingLeg: 0
@@ -20117,7 +20129,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70b342d8ce5c2fd48b8fa3147d48d1d1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Weight: 0.78
+  m_Weight: 0.62
   m_Effectors: []
 --- !u!64 &1246365517
 MeshCollider:
@@ -21012,7 +21024,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70b342d8ce5c2fd48b8fa3147d48d1d1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Weight: 0.64
+  m_Weight: 0.48
   m_Effectors: []
 --- !u!1 &1329423985
 GameObject:
@@ -21379,6 +21391,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 0
   talk2: 0
+  wall: 0
   talking1: 0
   talking2: 0
   shakingLeg: 0
@@ -21713,6 +21726,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 0
   talk2: 0
+  wall: 0
   talking1: 0
   talking2: 0
   shakingLeg: 0
@@ -23835,6 +23849,7 @@ MonoBehaviour:
   withMusic: 1
   talk1: 0
   talk2: 0
+  wall: 0
   talking1: 0
   talking2: 0
   shakingLeg: 0
@@ -27237,7 +27252,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70b342d8ce5c2fd48b8fa3147d48d1d1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Weight: 0.78
+  m_Weight: 0.65
   m_Effectors: []
 --- !u!64 &1672426598
 MeshCollider:
@@ -28014,6 +28029,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 0
   talk2: 1
+  wall: 0
   talking1: 0
   talking2: 0
   shakingLeg: 0
@@ -29776,6 +29792,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 0
   talk2: 0
+  wall: 0
   talking1: 0
   talking2: 0
   shakingLeg: 0
@@ -30347,6 +30364,7 @@ MonoBehaviour:
   withMusic: 1
   talk1: 0
   talk2: 0
+  wall: 0
   talking1: 0
   talking2: 0
   shakingLeg: 0
@@ -30627,7 +30645,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70b342d8ce5c2fd48b8fa3147d48d1d1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Weight: 0.78
+  m_Weight: 0.61
   m_Effectors: []
 --- !u!64 &1837302214
 MeshCollider:
@@ -30945,6 +30963,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 0
   talk2: 0
+  wall: 0
   talking1: 0
   talking2: 0
   shakingLeg: 0
@@ -32376,6 +32395,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 0
   talk2: 0
+  wall: 0
   talking1: 0
   talking2: 0
   shakingLeg: 0
@@ -33511,6 +33531,7 @@ MonoBehaviour:
   withMusic: 0
   talk1: 1
   talk2: 0
+  wall: 0
   talking1: 0
   talking2: 0
   shakingLeg: 0
@@ -35231,7 +35252,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70b342d8ce5c2fd48b8fa3147d48d1d1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Weight: 0.43
+  m_Weight: 0.34
   m_Effectors: []
 --- !u!1 &2145183365
 GameObject:
