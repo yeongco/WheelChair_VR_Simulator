@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.AI.Navigation;
 using UnityEngine;
 using UnityEngine.AI;
 public enum AIType
@@ -51,6 +52,7 @@ public class AIContoller : MonoBehaviour
         if (aiType == AIType.standing)
             SetStandingAnimation();
     }
+
 
     private void Update()
     {

@@ -7,6 +7,15 @@ using UnityEngine;
 
 public class GameEvents
 {
+    public event Action<bool> onBittonClicked; //�� ���� �̺�Ʈ
+    public void ButtonClicked(bool clicked)
+    {
+        if (onBittonClicked != null)
+        {
+            onBittonClicked(clicked);
+        }
+    }
+
     public event Action<bool> onOpenDoor; //�� ���� �̺�Ʈ
     public void OpenDoor(bool clicked)
     {
