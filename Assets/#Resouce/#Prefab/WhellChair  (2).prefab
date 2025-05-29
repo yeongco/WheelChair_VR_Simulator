@@ -209,11 +209,20 @@ MonoBehaviour:
   autoSetup: 0
   wheelchairPrefab: {fileID: 0}
   createEmptyObjects: 0
+  enableHoverSystem: 1
+  enablePhysicsEnhancer: 1
+  createAdditionalHeightPoints: 1
   leftWheelMesh: {fileID: 0}
   rightWheelMesh: {fileID: 0}
   wheelRadius: 0.3
   chairLength: 1.2
   chairWidth: 0.6
+  defaultHoverHeight: 0.5
+  disableGravity: 1
+  enableVirtualContact: 1
+  virtualContactHeight: 0.05
+  colliderHeightOffset: 0.1
+  adjustColliderHeight: 1
 --- !u!114 &6843471857535488741
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -241,6 +250,19 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 1025
+  useWheelConstraints: 1
+  wheelConnectionStrength: 10000
+  maxWheelDistance: 0.2
+  forceWheelPosition: 1
+  useVirtualWheels: 1
+  virtualWheelRadius: 0.3
+  wheelContactForce: 2000
+  wheelDamping: 100
+  useTrainingWheels: 1
+  maxTiltAngleBeforeCorrection: 5
+  tiltCorrectionForce: 3000
+  tiltCorrectionDamping: 200
+  maxAllowedTiltAngle: 15
   wheelForce: 500
   moveSpeedMultiplier: 1
   rotationSpeedMultiplier: 1
@@ -248,7 +270,15 @@ MonoBehaviour:
   slopeSlipFactor: 0.5
   maxSlopeAngle: 30
   stabilityForce: 1000
-  maxTiltAngle: 15
+  heightStabilityForce: 2000
+  useVirtualGroundContact: 1
+  virtualContactHeight: 0.05
+  groundContactForce: 5000
+  groundContactDamping: 300
+  contactSmoothness: 0.1
+  chairColliderLayer:
+    serializedVersion: 2
+    m_Bits: 1
 --- !u!1 &2369983684998321343
 GameObject:
   m_ObjectHideFlags: 0
@@ -444,7 +474,7 @@ Transform:
   m_GameObject: {fileID: 3584867793905123293}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0.7071068, z: -0, w: 0.70710677}
-  m_LocalPosition: {x: 0, y: 0.1, z: -0.409}
+  m_LocalPosition: {x: 0, y: 0.25, z: -0.409}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -581,7 +611,7 @@ Transform:
   m_GameObject: {fileID: 3996890191111876639}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0.7071068, z: -0, w: 0.70710677}
-  m_LocalPosition: {x: -0, y: 0.1, z: 0.4708}
+  m_LocalPosition: {x: -0, y: 0.25, z: 0.4708}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
