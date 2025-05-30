@@ -510,12 +510,12 @@ PrefabInstance:
     - target: {fileID: 4023612686999554150, guid: 9380ee72949c4fa47b667a8971e1f9da,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: -35.79
+      value: -45.59
       objectReference: {fileID: 0}
     - target: {fileID: 4023612686999554150, guid: 9380ee72949c4fa47b667a8971e1f9da,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.61
+      value: 3.23
       objectReference: {fileID: 0}
     - target: {fileID: 4023612686999554150, guid: 9380ee72949c4fa47b667a8971e1f9da,
         type: 3}
@@ -7726,7 +7726,7 @@ PrefabInstance:
     - target: {fileID: 2212585300819099117, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
       propertyPath: m_AngularDrag
-      value: 0.15
+      value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 2212585300819099117, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
@@ -7766,7 +7766,7 @@ PrefabInstance:
     - target: {fileID: 2212585300819099118, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
       propertyPath: jointBreakForce
-      value: 5000
+      value: 6000
       objectReference: {fileID: 0}
     - target: {fileID: 2212585300819099118, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
@@ -8123,7 +8123,7 @@ PrefabInstance:
     - target: {fileID: 2212585300819099117, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
       propertyPath: m_AngularDrag
-      value: 0.15
+      value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 2212585300819099117, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
@@ -8163,7 +8163,7 @@ PrefabInstance:
     - target: {fileID: 2212585300819099118, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
       propertyPath: jointBreakForce
-      value: 5000
+      value: 6000
       objectReference: {fileID: 0}
     - target: {fileID: 2212585300819099118, guid: 252e489c1e58f9141b6f93149c449eee,
         type: 3}
@@ -8624,6 +8624,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1f3c62a340ea652468011c4ab32373b8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  maxRotationAngle: 2
 --- !u!114 &1402002487
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8638,9 +8639,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   wheelchairSound: {fileID: 0}
   wheelRollingSound: {fileID: 8300000, guid: 717b0f31ab2c32742b358d0a11778b9f, type: 3}
-  minSpeed: 1
-  maxSpeed: 3
-  minPitch: 0.2
+  minSpeed: 0.3
+  maxSpeed: 2
+  minPitch: 1
   maxPitch: 3
   volumeFadeSpeed: 1
 --- !u!1 &1416615467 stripped
