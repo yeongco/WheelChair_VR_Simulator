@@ -17,7 +17,10 @@ public class SubwayMove : MonoBehaviour
     [Header("Departure Settings")]
     [SerializeField] private float accelerationDuration = 5f;
     [SerializeField] private Ease accelerationEase = Ease.InQuad;
-    
+
+    [Header("Arrival Settings")]
+    [SerializeField] private float arrivalDuration = 3f; // 여기에 시간 노출
+
     private Vector3 stationPosition; // 역 정차 위치
     private Vector3 initialPosition; // 지하철 초기 위치
     private Vector3 departurePosition;
@@ -55,10 +58,11 @@ public class SubwayMove : MonoBehaviour
         
         // 초기 속도와 거리를 기반으로 감속 시간 계산
         // 감속은 0까지 줄어드는 것이므로 평균 속도는 initialSpeed/2
-        float decelerationTime = distanceToStation / (initialSpeed / 2);
+        //float decelerationTime = distanceToStation / (initialSpeed / 2);
         
         // 감속 트윈 생성
-        currentMovementTween = transform.DOMove(stationPosition, decelerationTime)
+        currentMovementTween = 
+            transform.DOMove(stationPosition, arrivalDuration)
             .SetEase(decelerationEase)
             .OnComplete(() => {
                 Debug.Log("Subway arrived at station");
