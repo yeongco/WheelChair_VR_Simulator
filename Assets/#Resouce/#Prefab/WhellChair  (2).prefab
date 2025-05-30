@@ -45,7 +45,6 @@ GameObject:
   - component: {fileID: 2927049945205747907}
   - component: {fileID: 4319772868829832105}
   - component: {fileID: 2556384276817310704}
-  - component: {fileID: 8793883348196914180}
   - component: {fileID: 6843471857535488741}
   m_Layer: 0
   m_Name: WhellChair  (2)
@@ -68,7 +67,9 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6363498916013001634}
+  - {fileID: 7181913281367467191}
   - {fileID: 2993336536757908482}
+  - {fileID: 1879323118877333826}
   - {fileID: 479577886723342846}
   - {fileID: 3195938536538697475}
   - {fileID: 5807455419930001037}
@@ -194,35 +195,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &8793883348196914180
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2020437070345100711}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6164a138f95bdf442b19dd7a94609cb2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  autoSetup: 0
-  wheelchairPrefab: {fileID: 0}
-  createEmptyObjects: 0
-  enableHoverSystem: 1
-  enablePhysicsEnhancer: 1
-  createAdditionalHeightPoints: 1
-  leftWheelMesh: {fileID: 0}
-  rightWheelMesh: {fileID: 0}
-  wheelRadius: 0.3
-  chairLength: 1.2
-  chairWidth: 0.6
-  defaultHoverHeight: 0.5
-  disableGravity: 1
-  enableVirtualContact: 1
-  virtualContactHeight: 0.05
-  colliderHeightOffset: 0.1
-  adjustColliderHeight: 1
 --- !u!114 &6843471857535488741
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -235,50 +207,79 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 457a591aaddbed44ba24423c502bf5d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  chairRigidbody: {fileID: 2556384276817310704}
-  chairCenter: {fileID: 479577886723342846}
-  leftWheel: {fileID: 4771574425125277006}
-  rightWheel: {fileID: 5807455419930001037}
-  leftWheelCenter: {fileID: 4952053567562592522}
-  rightWheelCenter: {fileID: 1402296067292776182}
-  leftWheelGrab: {fileID: 4771574425125277003}
-  rightWheelGrab: {fileID: 6493596454468762143}
-  frontHeightPoint: {fileID: 6363498916013001634}
-  rearHeightPoint: {fileID: 2993336536757908482}
-  groundCheckDistance: 1
+  enableSuperconductorHover: 1
   hoverHeight: 0.19
+  minHoverHeight: 0.1
+  hoverForce: 8000
+  hoverDamping: 1000
+  hoverStiffness: 5000
+  stabilityForce: 1000
+  stabilityDamping: 2000
+  maxTiltAngle: 3
+  stabilityResponseSpeed: 20
+  enableGyroscopicStabilization: 1
+  groundDetectionPoints:
+  - {fileID: 6363498916013001634}
+  - {fileID: 7181913281367467191}
+  - {fileID: 2993336536757908482}
+  - {fileID: 1879323118877333826}
+  groundCheckDistance: 1
   groundLayer:
     serializedVersion: 2
     m_Bits: 1025
-  useWheelConstraints: 1
-  wheelConnectionStrength: 10000
-  maxWheelDistance: 0.2
-  forceWheelPosition: 1
-  useVirtualWheels: 1
-  virtualWheelRadius: 0.3
-  wheelContactForce: 2000
-  wheelDamping: 100
-  useTrainingWheels: 1
-  maxTiltAngleBeforeCorrection: 5
-  tiltCorrectionForce: 3000
-  tiltCorrectionDamping: 200
-  maxAllowedTiltAngle: 15
-  wheelForce: 500
-  moveSpeedMultiplier: 1
-  rotationSpeedMultiplier: 1
-  speedDecayRate: 0.95
-  slopeSlipFactor: 0.5
-  maxSlopeAngle: 30
-  stabilityForce: 1000
-  heightStabilityForce: 2000
-  useVirtualGroundContact: 1
-  virtualContactHeight: 0.05
-  groundContactForce: 5000
-  groundContactDamping: 300
-  contactSmoothness: 0.1
-  chairColliderLayer:
+  contactPointOffset: 0.05
+  leftWheel: {fileID: 4771574425125277006}
+  rightWheel: {fileID: 5807455419930001037}
+  leftWheelGrab: {fileID: 4771574425125277003}
+  rightWheelGrab: {fileID: 6493596454468762143}
+  wheelRadius: 0.3
+  wheelFriction: 0.98
+  wheelToMovementRatio: 1
+  wheelInputSensitivity: 1
+  wheelDecelerationRate: 0.02
+  onlyMoveWhenWheelsActive: 1
+  enableWheelRotationDebug: 1
+  autoDetectWheelAxis: 1
+  leftWheelAxis: {x: 1, y: 0, z: 0}
+  rightWheelAxis: {x: 1, y: 0, z: 0}
+  enableSlopeSliding: 1
+  slopeThreshold: 5
+  maxSlideAngle: 45
+  slideForce: 2000
+  slideFriction: 0.3
+  wheelGripOnSlope: 0.7
+  slopeCurve:
     serializedVersion: 2
-    m_Bits: 1
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  maxSpeed: 8
+  maxAngularSpeed: 180
+  movementSmoothing: 5
+  rotationSmoothing: 8
+  chairRigidbody: {fileID: 2556384276817310704}
+  chairMass: 80
+  airResistance: 0.5
+  angularDrag: 10
 --- !u!1 &2369983684998321343
 GameObject:
   m_ObjectHideFlags: 0
@@ -459,7 +460,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2993336536757908482}
   m_Layer: 0
-  m_Name: Rear Height Point
+  m_Name: RearR Height Point
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -473,8 +474,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3584867793905123293}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.7071068, z: -0, w: 0.70710677}
-  m_LocalPosition: {x: 0, y: 0.25, z: -0.409}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.32, y: 0.25, z: -0.21}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -596,7 +597,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6363498916013001634}
   m_Layer: 0
-  m_Name: Front Height Point
+  m_Name: FrontR Height Point
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -610,8 +611,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3996890191111876639}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.7071068, z: -0, w: 0.70710677}
-  m_LocalPosition: {x: -0, y: 0.25, z: 0.4708}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.28, y: 0.25, z: 0.53}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -643,6 +644,68 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0.7071068, z: -0, w: 0.70710677}
   m_LocalPosition: {x: 0, y: 0.478, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3247970843421092563}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &7466356997098045195
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7181913281367467191}
+  m_Layer: 0
+  m_Name: FrontL Height Point
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7181913281367467191
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7466356997098045195}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.28, y: 0.25, z: 0.53}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3247970843421092563}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &9089560063605378512
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1879323118877333826}
+  m_Layer: 0
+  m_Name: RearL Height Point
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1879323118877333826
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9089560063605378512}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.32, y: 0.25, z: -0.21}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

@@ -10,8 +10,8 @@ public class WheelchairController : MonoBehaviour
     public float hoverHeight = 0.3f; // 부양 높이 (사용자 설정 가능)
     public float minHoverHeight = 0.1f; // 최소 부양 높이
     public float hoverForce = 8000f; // 부양 힘
-    public float hoverDamping = 1000f; // 부양 댐핑
-    public float hoverStiffness = 5000f; // 부양 강성
+    public float hoverDamping = 2000f; // 부양 댐핑 (증가)
+    public float hoverStiffness = 3000f; // 부양 강성 (감소하여 더 부드럽게)
     
     [Header("🛡️ 안정성 제어 시스템")]
     public float stabilityForce = 15000f; // 안정화 힘 (매우 강하게)
@@ -119,7 +119,7 @@ public class WheelchairController : MonoBehaviour
             
         // 초전도체 부양을 위한 물리 설정
         chairRigidbody.mass = chairMass;
-        chairRigidbody.useGravity = false; // 중력 비활성화
+        chairRigidbody.useGravity = false; // 중력 비활성화 (수동으로 제어)
         chairRigidbody.drag = airResistance;
         chairRigidbody.angularDrag = angularDrag;
         chairRigidbody.centerOfMass = new Vector3(0, -0.2f, 0); // 낮은 무게중심
@@ -137,9 +137,10 @@ public class WheelchairController : MonoBehaviour
             DetectWheelAxes();
         }
         
-        Debug.Log("🔋 초전도체 부양 시스템 초기화 완료 - 순수 바퀴 주도 + 경사로 미끄러짐");
+        Debug.Log("🔋 초전도체 부양 시스템 초기화 완료 - 순수 바퀴 주도 + 경사로 미끄러짐 + 글로벌 레이캐스팅 + 안정화된 부양");
         Debug.Log($"부양 높이: {hoverHeight}m, 바퀴 반지름: {wheelRadius}m");
         Debug.Log($"왼쪽 바퀴 회전축: {leftWheelAxis}, 오른쪽 바퀴 회전축: {rightWheelAxis}");
+        Debug.Log("중력 시스템: 부드러운 전환으로 안정적인 부양 + 강화된 댐핑");
     }
     
     void CreateGroundDetectionPoints()
@@ -268,6 +269,7 @@ public class WheelchairController : MonoBehaviour
             Vector3 rayStart = groundDetectionPoints[i].position;
             RaycastHit hit;
             
+            // 글로벌 -Y축 방향으로 레이캐스팅 (Vector3.down 사용)
             if (Physics.Raycast(rayStart, Vector3.down, out hit, groundCheckDistance, groundLayer))
             {
                 groundDistances[i] = hit.distance;
@@ -339,33 +341,101 @@ public class WheelchairController : MonoBehaviour
     
     void ApplySuperconductorHover()
     {
-        // 각 감지 포인트에서 개별적으로 부양 힘 적용
+        bool anyGroundDetected = false;
+        float minDistanceToGround = float.MaxValue;
+        float averageDistanceToGround = 0f;
+        int validGroundPoints = 0;
+        
+        // 지면까지의 거리 정보 수집
         for (int i = 0; i < 4; i++)
         {
-            if (!groundDetected[i]) continue;
-            
-            Vector3 pointPosition = groundDetectionPoints[i].position;
-            float targetHeight = groundPoints[i].y + hoverHeight;
-            float currentHeight = pointPosition.y;
-            float heightError = targetHeight - currentHeight;
-            
-            // 최소 높이 제한
-            if (currentHeight - groundPoints[i].y < minHoverHeight)
+            if (groundDetected[i])
             {
-                heightError = Mathf.Max(heightError, minHoverHeight - (currentHeight - groundPoints[i].y));
+                anyGroundDetected = true;
+                minDistanceToGround = Mathf.Min(minDistanceToGround, groundDistances[i]);
+                averageDistanceToGround += groundDistances[i];
+                validGroundPoints++;
+            }
+        }
+        
+        if (validGroundPoints > 0)
+        {
+            averageDistanceToGround /= validGroundPoints;
+        }
+        
+        // 부양 범위 확장 (더 부드러운 전환을 위해)
+        float hoverTransitionRange = hoverHeight + 1.0f; // 전환 범위 증가
+        
+        if (anyGroundDetected && minDistanceToGround <= hoverTransitionRange)
+        {
+            // 부양 힘과 중력의 혼합 적용
+            float hoverInfluence = CalculateHoverInfluence(averageDistanceToGround);
+            
+            // 각 감지 포인트에서 개별적으로 부양 힘 적용
+            for (int i = 0; i < 4; i++)
+            {
+                if (!groundDetected[i]) continue;
+                
+                Vector3 pointPosition = groundDetectionPoints[i].position;
+                float targetHeight = groundPoints[i].y + hoverHeight;
+                float currentHeight = pointPosition.y;
+                float heightError = targetHeight - currentHeight;
+                
+                // 최소 높이 제한
+                if (currentHeight - groundPoints[i].y < minHoverHeight)
+                {
+                    heightError = Mathf.Max(heightError, minHoverHeight - (currentHeight - groundPoints[i].y));
+                }
+                
+                // 부드러운 부양 힘 계산 (PID 제어 방식)
+                float proportionalForce = heightError * hoverStiffness;
+                
+                // 수직 속도 댐핑 (더 강한 댐핑)
+                float verticalVelocity = Vector3.Dot(chairRigidbody.velocity, Vector3.up);
+                float dampingForce = -verticalVelocity * hoverDamping * 2f; // 댐핑 강화
+                
+                // 부양 힘 적용 (부드러운 전환)
+                Vector3 hoverForceVector = Vector3.up * (proportionalForce + dampingForce) * hoverInfluence * 0.25f;
+                chairRigidbody.AddForceAtPosition(hoverForceVector, pointPosition, ForceMode.Force);
             }
             
-            // 부양 힘 계산 (스프링-댐퍼 시스템)
-            Vector3 hoverForceVector = groundNormals[i] * heightError * hoverStiffness;
-            
-            // 수직 속도 댐핑
-            float verticalVelocity = Vector3.Dot(chairRigidbody.velocity, groundNormals[i]);
-            Vector3 dampingForceVector = -groundNormals[i] * verticalVelocity * hoverDamping;
-            
-            // 힘 적용
-            Vector3 totalForce = (hoverForceVector + dampingForceVector) * 0.25f; // 4개 포인트로 분산
-            chairRigidbody.AddForceAtPosition(totalForce, pointPosition, ForceMode.Force);
+            // 부분적 중력 적용 (부양 영향도에 따라)
+            float gravityInfluence = 1f - hoverInfluence;
+            if (gravityInfluence > 0f)
+            {
+                Vector3 partialGravityForce = Vector3.down * chairMass * 9.81f * gravityInfluence;
+                chairRigidbody.AddForce(partialGravityForce, ForceMode.Force);
+            }
         }
+        else
+        {
+            // 완전히 공중에 있을 때는 일반 중력 적용
+            Vector3 gravityForce = Vector3.down * chairMass * 9.81f;
+            chairRigidbody.AddForce(gravityForce, ForceMode.Force);
+        }
+    }
+    
+    // 부양 영향도 계산 (거리에 따른 부드러운 전환)
+    float CalculateHoverInfluence(float distanceToGround)
+    {
+        // 목표 부양 높이에서 최대 영향도
+        if (distanceToGround <= hoverHeight)
+        {
+            return 1f;
+        }
+        
+        // 부양 높이를 초과하면 점진적으로 감소
+        float transitionRange = 1.0f; // 전환 범위
+        float excessDistance = distanceToGround - hoverHeight;
+        
+        if (excessDistance >= transitionRange)
+        {
+            return 0f; // 완전히 중력만 적용
+        }
+        
+        // 부드러운 곡선으로 전환 (코사인 보간)
+        float normalizedDistance = excessDistance / transitionRange;
+        return Mathf.Cos(normalizedDistance * Mathf.PI * 0.5f);
     }
     
     void ApplyStabilityControl()
@@ -752,6 +822,14 @@ public class WheelchairController : MonoBehaviour
         {
             horizontalVelocity = horizontalVelocity.normalized * maxSpeed;
             chairRigidbody.velocity = new Vector3(horizontalVelocity.x, velocity.y, horizontalVelocity.z);
+        }
+        
+        // 수직 속도 제한 (부양 안정성을 위해)
+        float maxVerticalSpeed = 3f; // 최대 수직 속도 제한
+        if (Mathf.Abs(velocity.y) > maxVerticalSpeed)
+        {
+            float clampedY = Mathf.Clamp(velocity.y, -maxVerticalSpeed, maxVerticalSpeed);
+            chairRigidbody.velocity = new Vector3(velocity.x, clampedY, velocity.z);
         }
         
         // 최대 각속도 제한 (Y축만)
