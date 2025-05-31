@@ -7,7 +7,7 @@ using UnityEngine;
 
 public class GameEvents
 {
-    public event Action<bool> onBittonClicked; //�� ���� �̺�Ʈ
+    public event Action<bool> onBittonClicked;
     public void ButtonClicked(bool clicked)
     {
         if (onBittonClicked != null)
@@ -16,7 +16,7 @@ public class GameEvents
         }
     }
 
-    public event Action<bool> onOpenDoor; //�� ���� �̺�Ʈ
+    public event Action<bool> onOpenDoor;
     public void OpenDoor(bool clicked)
     {
         if (onOpenDoor != null)
