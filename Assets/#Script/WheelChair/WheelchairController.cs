@@ -39,12 +39,41 @@ public class WheelchairController : MonoBehaviour
     public float inputSensitivity = 2f; // 입력 감도
     public float slopeInfluence = 1f; // 경사로 영향력
     
+    [Header("🎯 ICC 기반 회전 시스템")]
+    [SerializeField, Tooltip("바퀴간 실제 거리 (자동 계산됨 - Transform 위치 기반)")]
+    private float wheelbaseWidth = 0.6f; 
+    public bool enableICCRotation = true; // ICC 기반 회전 활성화
+    public float rotationTorqueMultiplier = 500f; // 회전 토크 배율
+    public float minTurningRadius = 0.1f; // 최소 회전 반지름 (제자리 회전 방지)
+    public float maxTurningRadius = 50f; // 최대 회전 반지름
+    public bool showICCGizmos = true; // ICC 기즈모 표시
+    
+    [Header("⚡ 회전 반응성 설정")]
+    [Range(0.1f, 5.0f), Tooltip("회전 반응성 배율 (높을수록 빠른 회전)")]
+    public float rotationResponsiveness = 1.0f; // 회전 반응성 배율
+    [Range(0.1f, 3.0f), Tooltip("각속도 직접 배율 (계산된 각속도에 곱해짐)")]
+    public float angularVelocityMultiplier = 1.0f; // 각속도 배율
+    [Range(1f, 30f), Tooltip("회전 스무딩 속도 (높을수록 즉시 반응)")]
+    public float rotationSmoothing = 8f; // 회전 스무딩 (기존 설정 이동)
+    [Range(0.1f, 10f), Tooltip("회전 가속도 (회전 시작/정지 시 가속)")]
+    public float rotationAcceleration = 2.0f; // 회전 가속도
+    
+    [Header("🛡️ 회전 안정성 설정")]
+    [Range(1f, 20f), Tooltip("ICC 회전 스무딩 (높을수록 부드러운 회전)")]
+    public float iccRotationSmoothing = 10f; // ICC 회전 스무딩
+    [Range(0.1f, 5f), Tooltip("최대 회전 속도 제한 (도/프레임)")]
+    public float maxRotationDeltaPerFrame = 2f; // 프레임당 최대 회전 변화량
+    [Range(0.001f, 0.1f), Tooltip("최소 회전 임계값 (이하 무시)")]
+    public float minRotationThreshold = 0.01f; // 최소 회전 임계값
+    [Tooltip("급격한 회전 변화 감지 및 제한")]
+    public bool enableRotationStabilization = true; // 회전 안정화 활성화
+    
     [Header("🎮 이동 변환 설정")]
     public float movementScale = 0.1f; // Z 변화량을 이동거리로 변환하는 배율 (0.01에서 0.1로 증가)
     public float forwardSpeedMultiplier = 1f; // 전진 속도 배율
     public float backwardSpeedMultiplier = 0.8f; // 후진 속도 배율 (일반적으로 후진이 느림)
     public float maxSpeed = 8f; // 최대 이동 속도
-    public float rotationScale = 0.1f; // 바퀴 차이를 회전속도로 변환하는 배율
+    public float rotationScale = 0.1f; // 바퀴 차이를 회전속도로 변환하는 배율 (레거시용)
     
     [Header("🏔️ 경사로 미끄러짐 시스템")]
     public bool enableSlopeSliding = true;
@@ -66,7 +95,7 @@ public class WheelchairController : MonoBehaviour
     [Header("🏃 이동 제어")]
     public float maxAngularSpeed = 180f;
     public float movementSmoothing = 15f; // 5에서 15로 증가 (더 빠른 반응)
-    public float rotationSmoothing = 8f;
+    // rotationSmoothing은 위 "회전 반응성 설정"에서 정의됨
     
     [Header("🎛️ 물리 설정")]
     public Rigidbody chairRigidbody;
@@ -127,10 +156,28 @@ public class WheelchairController : MonoBehaviour
     private HashSet<object> activeVirtualSlopes = new HashSet<object>();
     private float currentVirtualSlopeForce = 0f;
     
+    // ICC 기반 회전 시스템 변수들
+    private Vector3 currentICC = Vector3.zero; // 현재 회전 중심점 (Instantaneous Center of Curvature)
+    private float currentTurningRadius = float.MaxValue; // 현재 회전 반지름
+    private float calculatedAngularVelocity = 0f; // ICC로 계산된 각속도
+    private Vector3 rotationPivotPoint = Vector3.zero; // 실제 회전축 점
+    private bool isRotating = false; // 현재 회전 중인지
+    private float leftWheelLinearVelocity = 0f; // 왼쪽 바퀴 선속도
+    private float rightWheelLinearVelocity = 0f; // 오른쪽 바퀴 선속도
+    
+    // ICC 축 기반 회전 시스템 변수들
+    private float iccYRotationDelta = 0f; // ICC 축 기준 Y축 회전 변화량 (도/프레임)
+    private float accumulatedIccRotation = 0f; // ICC 축 기준 누적 회전량
+    private float smoothedRotationDelta = 0f; // 스무딩된 회전 변화량
+    private float lastRotationDelta = 0f; // 이전 프레임 회전 변화량 (급격한 변화 감지용)
+    
     void Start()
     {
         InitializeSuperconductorSystem();
         InitializeWheelZRotationSystem();
+        
+        // 바퀴 거리 자동 계산 초기화
+        UpdateWheelbaseWidth();
         
         // 경사 곡선 기본 설정
         if (slopeCurve.keys.Length == 0)
@@ -627,65 +674,317 @@ public class WheelchairController : MonoBehaviour
     
     void CalculateMovementFromZRotation()
     {
-        // 각 바퀴의 고유한 전진 방향성을 고려한 이동 계산
+        // 각 바퀴의 Z 회전 변화량을 선속도로 변환
         // 왼쪽 바퀴: +Z = 전진, -Z = 후진
         // 오른쪽 바퀴: -Z = 전진, +Z = 후진
         
-        float leftForwardAmount = leftWheelDeltaZ;      // 왼쪽: 양수가 전진
-        float rightForwardAmount = -rightWheelDeltaZ;   // 오른쪽: 음수가 전진이므로 부호 반전
+        float leftAngularVel = leftWheelDeltaZ * Mathf.Deg2Rad; // 라디안으로 변환
+        float rightAngularVel = -rightWheelDeltaZ * Mathf.Deg2Rad; // 오른쪽은 부호 반전
         
-        // 전체 휠체어의 전진/후진 계산 (평균)
-        float averageForwardAmount = (leftForwardAmount + rightForwardAmount) * 0.5f;
+        // 바퀴의 각속도를 선속도로 변환 (v = ωr)
+        leftWheelLinearVelocity = leftAngularVel * wheelRadius * movementScale;
+        rightWheelLinearVelocity = rightAngularVel * wheelRadius * movementScale;
         
-        // 회전 계산 (바퀴간 차이)
-        // 왼쪽이 더 빠르면 우회전, 오른쪽이 더 빠르면 좌회전
-        float rotationDifference = leftForwardAmount - rightForwardAmount;
+        if (enableICCRotation)
+        {
+            CalculateICCBasedMovement();
+        }
+        else
+        {
+            CalculateLegacyMovement();
+        }
         
-        // 전진/후진 이동 계산
-        Vector3 forwardDirection = GetCurrentForwardDirection();
-        float rawSpeed = averageForwardAmount * movementScale;
-        
-        // 전진/후진에 따른 속도 배율 적용
-        float speedMultiplier = rawSpeed >= 0 ? forwardSpeedMultiplier : backwardSpeedMultiplier;
-        float forwardSpeed = rawSpeed * speedMultiplier;
-        
-        targetVelocity = forwardDirection * forwardSpeed;
-        
-        // 속도 제한
+        // 속도 제한 적용
         if (targetVelocity.magnitude > maxSpeed)
         {
             targetVelocity = targetVelocity.normalized * maxSpeed;
         }
         
-        // 회전 계산 (라디안으로 변환)
-        targetAngularVelocity = rotationDifference * rotationScale * Mathf.Deg2Rad;
-        
         // 정당한 속도 저장 (이동 제한 시스템용)
         legitimateVelocity = targetVelocity;
         
         // 디버그 정보
-        if (enableDebugLog && (Mathf.Abs(averageForwardAmount) > 0.1f || Mathf.Abs(rotationDifference) > 0.1f))
+        if (enableDebugLog && (Mathf.Abs(leftWheelLinearVelocity) > 0.01f || Mathf.Abs(rightWheelLinearVelocity) > 0.01f))
         {
-            string movementType = rawSpeed >= 0 ? "전진" : "후진";
-            string speedInfo = rawSpeed >= 0 ? $"전진속도배율: {forwardSpeedMultiplier}" : $"후진속도배율: {backwardSpeedMultiplier}";
-            
-            Debug.Log($"🚗 이동 계산 (새 방향성) - 왼쪽 전진량: {leftForwardAmount:F2}, 오른쪽 전진량: {rightForwardAmount:F2}");
-            Debug.Log($"    평균 전진량: {averageForwardAmount:F2}, 회전 차이: {rotationDifference:F2}");
-            Debug.Log($"    {movementType} - 원시속도: {rawSpeed:F2}m/s, 최종속도: {forwardSpeed:F2}m/s ({speedInfo})");
-            Debug.Log($"    각속도: {targetAngularVelocity * Mathf.Rad2Deg:F2}도/초");
-            
-            if (Mathf.Abs(rotationDifference) > 0.1f)
+            if (enableICCRotation)
             {
-                string turnDirection = rotationDifference > 0 ? "우회전" : "좌회전";
-                string fasterWheel = rotationDifference > 0 ? "왼쪽" : "오른쪽";
-                Debug.Log($"    회전: {turnDirection} ({fasterWheel} 바퀴가 더 빠름)");
+                Debug.Log($"🎯 ICC 기반 이동 - 왼쪽: {leftWheelLinearVelocity:F2}m/s, 오른쪽: {rightWheelLinearVelocity:F2}m/s");
+                Debug.Log($"    회전 반지름: {currentTurningRadius:F2}m, 각속도: {calculatedAngularVelocity * Mathf.Rad2Deg:F2}도/초");
+                Debug.Log($"    ICC 위치: {currentICC}, 회전 중심: {rotationPivotPoint}");
+            }
+            else
+            {
+                Debug.Log($"🚗 레거시 이동 - 왼쪽: {leftWheelLinearVelocity:F2}m/s, 오른쪽: {rightWheelLinearVelocity:F2}m/s");
+            }
+        }
+    }
+    
+    void CalculateICCBasedMovement()
+    {
+        float vL = leftWheelLinearVelocity;
+        float vR = rightWheelLinearVelocity;
+        
+        // 실제 바퀴 Transform 위치에서 거리 계산
+        float L = GetActualWheelbaseWidth();
+        
+        // 직진 체크 (속도 차이가 매우 작은 경우)
+        if (Mathf.Abs(vR - vL) < 0.001f)
+        {
+            // 직진 이동
+            float averageVelocity = (vL + vR) * 0.5f;
+            
+            // 속도 배율 적용 (전진/후진 구분)
+            float straightSpeedMultiplier = averageVelocity >= 0 ? forwardSpeedMultiplier : backwardSpeedMultiplier;
+            averageVelocity *= straightSpeedMultiplier;
+            
+            Vector3 straightDirection = GetCurrentForwardDirection();
+            targetVelocity = straightDirection * averageVelocity;
+            targetAngularVelocity = 0f;
+            calculatedAngularVelocity = 0f;
+            currentTurningRadius = float.MaxValue;
+            isRotating = false;
+            iccYRotationDelta = 0f;
+            
+            // 직진 시 회전 관련 변수들 초기화 (떨림 방지)
+            smoothedRotationDelta = Mathf.Lerp(smoothedRotationDelta, 0f, iccRotationSmoothing * Time.fixedDeltaTime * 2f);
+            lastRotationDelta = 0f;
+            
+            return;
+        }
+        
+        // ICC 기반 회전 계산
+        isRotating = true;
+        
+        // 회전 반지름 계산: R = L * (vL + vR) / (2 * (vR - vL))
+        float speedSum = vL + vR;
+        float speedDiff = vR - vL;
+        currentTurningRadius = L * speedSum / (2f * speedDiff);
+        
+        // 각속도 계산: ω = (vR - vL) / L (부호 반전으로 회전 방향 수정)
+        calculatedAngularVelocity = -(speedDiff / L);
+        
+        // 새로운 회전 반응성 설정 적용
+        calculatedAngularVelocity *= angularVelocityMultiplier * rotationResponsiveness;
+        
+        // 회전 반지름 제한 적용 (부호 유지)
+        float limitedRadius = Mathf.Clamp(Mathf.Abs(currentTurningRadius), minTurningRadius, maxTurningRadius);
+        if (currentTurningRadius < 0) limitedRadius = -limitedRadius;
+        currentTurningRadius = limitedRadius;
+        
+        // ICC 위치 계산 (바퀴 중심점 기준 - 고정된 월드 좌표계 사용)
+        Vector3 wheelCenterWorld = GetWheelCenterPoint();
+        
+        // 바퀴간 벡터를 월드 좌표계에서 계산 (회전에 무관하게 고정)
+        Vector3 wheelDirection = (rightWheelTransform.position - leftWheelTransform.position).normalized;
+        Vector3 iccOffsetWorld = wheelDirection * (-currentTurningRadius);
+        
+        currentICC = wheelCenterWorld + iccOffsetWorld;
+        rotationPivotPoint = currentICC;
+        
+        // Y축 각속도 설정
+        targetAngularVelocity = calculatedAngularVelocity;
+        
+        // ICC 축 기준 Y축 회전 변화량 계산
+        iccYRotationDelta = calculatedAngularVelocity * Mathf.Rad2Deg * Time.fixedDeltaTime;
+        
+        // NaN 및 무한값 체크 (안정성)
+        if (float.IsNaN(iccYRotationDelta) || float.IsInfinity(iccYRotationDelta))
+        {
+            iccYRotationDelta = 0f;
+            Debug.LogWarning("⚠️ ICC 회전 변화량에서 NaN/Infinity 감지 - 0으로 설정");
+        }
+        
+        // 극도로 작은 값은 0으로 처리 (부동소수점 오차 방지)
+        if (Mathf.Abs(iccYRotationDelta) < 0.0001f)
+        {
+            iccYRotationDelta = 0f;
+        }
+        
+        accumulatedIccRotation += iccYRotationDelta;
+        
+        // 디버그 정보
+        if (enableDebugLog && Time.fixedTime % 1f < Time.fixedDeltaTime)
+        {
+            string wheelComparison = vL > vR ? "왼쪽 바퀴가 더 빠름" : vR > vL ? "오른쪽 바퀴가 더 빠름" : "양쪽 동일";
+            string expectedRotation = vL > vR ? "우회전" : vR > vL ? "좌회전" : "직진";
+            string actualRotation = calculatedAngularVelocity > 0 ? "좌회전 (반시계)" : calculatedAngularVelocity < 0 ? "우회전 (시계)" : "회전 없음";
+            
+            Debug.Log($"🎯 ICC 원형 경로 계산 (강화된 반응성):");
+            Debug.Log($"    ICC 위치: {currentICC}, 바퀴 회전반지름: {currentTurningRadius:F2}m");
+            Debug.Log($"    강화된 각속도: {calculatedAngularVelocity * Mathf.Rad2Deg:F1}도/초");
+            Debug.Log($"    🔄 Y축 회전 변화량: {iccYRotationDelta:F2}도/프레임");
+            Debug.Log($"    🔄 누적 ICC 회전량: {accumulatedIccRotation:F1}도");
+        }
+    }
+    
+    void CalculateLegacyMovement()
+    {
+        // 기존 방식 (하위 호환성을 위해 유지) - 이중 스케일링 문제 수정
+        float leftForwardAmount = leftWheelLinearVelocity;
+        float rightForwardAmount = rightWheelLinearVelocity;
+        
+        // 전체 휠체어의 전진/후진 계산 (평균)
+        float averageForwardAmount = (leftForwardAmount + rightForwardAmount) * 0.5f;
+        
+        // 회전 계산 (바퀴간 차이)
+        float rotationDifference = leftForwardAmount - rightForwardAmount;
+        
+        // 전진/후진 이동 계산
+        Vector3 legacyForwardDirection = GetCurrentForwardDirection();
+        float rawSpeed = averageForwardAmount;
+        
+        // 전진/후진에 따른 속도 배율 적용
+        float speedMultiplier = rawSpeed >= 0 ? forwardSpeedMultiplier : backwardSpeedMultiplier;
+        float forwardSpeed = rawSpeed * speedMultiplier;
+        
+        targetVelocity = legacyForwardDirection * forwardSpeed;
+        
+        // 회전 계산 (라디안으로 변환)
+        targetAngularVelocity = rotationDifference * rotationScale;
+        
+        isRotating = Mathf.Abs(rotationDifference) > 0.1f;
+    }
+    
+    /// <summary>
+    /// ICC 축을 중심으로 휠체어를 회전시키는 함수 (떨림 방지 개선)
+    /// </summary>
+    void ApplyICCRotation()
+    {
+        if (Mathf.Abs(iccYRotationDelta) < minRotationThreshold) 
+        {
+            smoothedRotationDelta = 0f;
+            return; // 회전 변화량이 너무 작으면 무시
+        }
+        
+        // 회전 안정화 활성화 시 추가 처리
+        if (enableRotationStabilization)
+        {
+            // 급격한 회전 변화 감지 및 제한
+            float rotationDeltaChange = Mathf.Abs(iccYRotationDelta - lastRotationDelta);
+            float maxAllowedChange = maxRotationDeltaPerFrame * 0.5f; // 급격한 변화 허용 한계
+            
+            if (rotationDeltaChange > maxAllowedChange)
+            {
+                // 급격한 변화 시 이전 값과 보간
+                float dampingFactor = 0.3f; // 급격한 변화 감쇠 계수
+                iccYRotationDelta = Mathf.Lerp(lastRotationDelta, iccYRotationDelta, dampingFactor);
+                
+                if (enableDebugLog && Time.fixedTime % 1f < Time.fixedDeltaTime)
+                {
+                    Debug.Log($"⚠️ 급격한 회전 변화 감지 - 감쇠 적용: {rotationDeltaChange:F3}도 → {iccYRotationDelta:F3}도");
+                }
+            }
+        }
+        
+        // 프레임당 최대 회전 속도 제한
+        float clampedRotationDelta = Mathf.Clamp(iccYRotationDelta, -maxRotationDeltaPerFrame, maxRotationDeltaPerFrame);
+        if (Mathf.Abs(clampedRotationDelta - iccYRotationDelta) > 0.001f)
+        {
+            if (enableDebugLog && Time.fixedTime % 1f < Time.fixedDeltaTime)
+            {
+                Debug.Log($"🛡️ 회전 속도 제한 적용: {iccYRotationDelta:F3}도 → {clampedRotationDelta:F3}도");
+            }
+            iccYRotationDelta = clampedRotationDelta;
+        }
+        
+        // ICC 회전 스무딩 적용
+        smoothedRotationDelta = Mathf.Lerp(smoothedRotationDelta, iccYRotationDelta, iccRotationSmoothing * Time.fixedDeltaTime);
+        
+        // 스무딩된 회전량이 충분히 클 때만 실제 회전 적용
+        if (Mathf.Abs(smoothedRotationDelta) >= minRotationThreshold)
+        {
+            // Transform.RotateAround를 사용하여 ICC 축을 중심으로 부드러운 회전
+            transform.RotateAround(currentICC, Vector3.up, smoothedRotationDelta);
+            
+            // 누적 회전량 업데이트
+            accumulatedIccRotation += smoothedRotationDelta;
+        }
+        
+        // 이전 프레임 값 저장
+        lastRotationDelta = iccYRotationDelta;
+        
+        if (enableDebugLog && Time.fixedTime % 0.5f < Time.fixedDeltaTime && Mathf.Abs(smoothedRotationDelta) > 0.001f)
+        {
+            Debug.Log($"🌀 ICC 축 기준 안정화된 회전 적용:");
+            Debug.Log($"    회전 중심 (ICC): {currentICC}");
+            Debug.Log($"    원본 회전량: {iccYRotationDelta:F3}도");
+            Debug.Log($"    스무딩된 회전량: {smoothedRotationDelta:F3}도");
+            Debug.Log($"    누적 회전: {accumulatedIccRotation:F1}도");
+            Debug.Log($"    휠체어 새 위치: {transform.position}");
+            Debug.Log($"    휠체어 새 회전: {transform.eulerAngles.y:F1}도");
+        }
+    }
+    
+    void ApplyICCBasedMovement()
+    {
+        Vector3 currentVelocity = chairRigidbody.velocity;
+        Vector3 verticalVelocity = new Vector3(0, currentVelocity.y, 0); // Y축 성분 보존 (부양 시스템용)
+        
+        // ICC 회전 중심을 기준으로 원운동 경로 적용
+        if (isRotating && Mathf.Abs(currentTurningRadius) < maxTurningRadius)
+        {
+            // ICC 축을 중심으로 휠체어 회전 적용
+            ApplyICCRotation();
+            
+            // 회전 중에는 수평 속도를 점진적으로 감소 (회전이 주된 이동 방식)
+            Vector3 currentHorizontalVelocity = new Vector3(currentVelocity.x, 0, currentVelocity.z);
+            float velocityDampingFactor = 0.1f; // 회전 중 속도 감쇠 계수
+            Vector3 dampedHorizontalVelocity = Vector3.Lerp(currentHorizontalVelocity, Vector3.zero, velocityDampingFactor * Time.fixedDeltaTime);
+            Vector3 finalVelocity = dampedHorizontalVelocity + verticalVelocity;
+            
+            chairRigidbody.velocity = finalVelocity;
+            
+            // Angular velocity는 0으로 설정 (Transform.RotateAround가 회전 처리)
+            Vector3 currentAngularVelocity = chairRigidbody.angularVelocity;
+            chairRigidbody.angularVelocity = new Vector3(currentAngularVelocity.x, 0f, currentAngularVelocity.z);
+            
+            if (enableDebugLog && Time.fixedTime % 0.5f < Time.fixedDeltaTime)
+            {
+                string rotationDir = calculatedAngularVelocity > 0 ? "좌회전" : "우회전";
+                Debug.Log($"🎯 ICC 축 기반 회전 적용 - {rotationDir}:");
+                Debug.Log($"    ICC 위치: {currentICC}");
+                Debug.Log($"    원본 회전량: {iccYRotationDelta:F3}도/프레임");
+                Debug.Log($"    스무딩된 회전량: {smoothedRotationDelta:F3}도/프레임");
+                Debug.Log($"    수평 속도 감쇠: {dampedHorizontalVelocity.magnitude:F2}m/s");
+                Debug.Log($"    휠체어 위치: {transform.position}");
+            }
+        }
+        else
+        {
+            // 직진 이동 - targetVelocity 사용
+            Vector3 currentHorizontalVelocity = new Vector3(currentVelocity.x, 0, currentVelocity.z);
+            Vector3 newHorizontalVelocity = Vector3.Lerp(currentHorizontalVelocity, targetVelocity, movementSmoothing * Time.fixedDeltaTime);
+            Vector3 finalVelocity = newHorizontalVelocity + verticalVelocity;
+            chairRigidbody.velocity = finalVelocity;
+            
+            // 직진 시에는 Y축 각속도를 부드럽게 0으로
+            Vector3 currentAngularVelocity = chairRigidbody.angularVelocity;
+            float angularDampingRate = rotationSmoothing * rotationAcceleration * Time.fixedDeltaTime;
+            float newYAngularVelocity = Mathf.Lerp(currentAngularVelocity.y, 0f, angularDampingRate);
+            chairRigidbody.angularVelocity = new Vector3(currentAngularVelocity.x, newYAngularVelocity, currentAngularVelocity.z);
+            
+            if (enableDebugLog && targetVelocity.magnitude > 0.01f && Time.fixedTime % 0.5f < Time.fixedDeltaTime)
+            {
+                Debug.Log($"🎯 ICC 직진 이동 - targetVelocity: {targetVelocity} (크기: {targetVelocity.magnitude:F2}m/s)");
             }
         }
     }
     
     void ApplyCalculatedMovement()
     {
-        // 현재 속도와 목표 속도 사이의 부드러운 보간
+        if (enableICCRotation && isRotating)
+        {
+            ApplyICCBasedMovement();
+        }
+        else
+        {
+            ApplyLegacyMovement();
+        }
+    }
+    
+    void ApplyLegacyMovement()
+    {
+        // 기존 방식 유지
         Vector3 currentVelocity = chairRigidbody.velocity;
         Vector3 horizontalVelocity = new Vector3(currentVelocity.x, 0, currentVelocity.z);
         Vector3 verticalVelocity = new Vector3(0, currentVelocity.y, 0);
@@ -707,8 +1006,7 @@ public class WheelchairController : MonoBehaviour
         // 속도 적용 디버그 (목표 속도가 있을 때만)
         if (enableDebugLog && targetVelocity.magnitude > 0.01f && Time.fixedTime % 0.5f < Time.fixedDeltaTime)
         {
-            Debug.Log($"⚡ 속도 적용 - 목표: {targetVelocity.magnitude:F3}m/s, 현재 수평: {horizontalVelocity.magnitude:F3}m/s, 새 수평: {newHorizontalVelocity.magnitude:F3}m/s");
-            Debug.Log($"    스무딩: {movementSmoothing}, deltaTime: {Time.fixedDeltaTime:F3}, 보간값: {movementSmoothing * Time.fixedDeltaTime:F3}");
+            Debug.Log($"⚡ 레거시 속도 적용 - 목표: {targetVelocity.magnitude:F3}m/s, 현재 수평: {horizontalVelocity.magnitude:F3}m/s");
         }
     }
     
@@ -891,6 +1189,259 @@ public class WheelchairController : MonoBehaviour
     // ========== 테스트 메서드들 ==========
     
     /// <summary>
+    /// ICC 시스템 상태 디버그
+    /// </summary>
+    [ContextMenu("Debug ICC System")]
+    public void DebugICCSystem()
+    {
+        Debug.Log("══════════════════════════════════════════════════");
+        Debug.Log("🎯 ICC 기반 회전 시스템 상태");
+        Debug.Log("══════════════════════════════════════════════════");
+        Debug.Log($"🔌 ICC 시스템 활성화: {enableICCRotation}");
+        Debug.Log($"🔄 현재 회전 중: {isRotating}");
+        
+        // 실제 바퀴 거리 정보
+        float actualDistance = GetActualWheelbaseWidth();
+        Debug.Log($"📏 설정된 바퀴간 거리: {wheelbaseWidth}m");
+        Debug.Log($"📐 실제 바퀴간 거리: {actualDistance:F3}m");
+        
+        if (Mathf.Abs(actualDistance - wheelbaseWidth) > 0.05f)
+        {
+            Debug.Log($"⚠️  실제 거리와 설정값이 다릅니다! 차이: {Mathf.Abs(actualDistance - wheelbaseWidth):F3}m");
+        }
+        
+        Debug.Log($"⚙️ 바퀴 반지름: {wheelRadius}m");
+        
+        // 바퀴 위치 정보
+        if (leftWheelTransform != null && rightWheelTransform != null)
+        {
+            Vector3 wheelCenter = GetWheelCenterPoint();
+            Debug.Log($"🎯 바퀴 중심점: {wheelCenter}");
+            Debug.Log($"🎯 왼쪽 바퀴: {leftWheelTransform.position}");
+            Debug.Log($"🎯 오른쪽 바퀴: {rightWheelTransform.position}");
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ 바퀴 Transform이 설정되지 않았습니다!");
+        }
+        
+        Debug.Log("─────────────────────────────────────");
+        Debug.Log("🚗 바퀴 선속도");
+        Debug.Log("─────────────────────────────────────");
+        Debug.Log($"왼쪽 바퀴: {leftWheelLinearVelocity:F3}m/s");
+        Debug.Log($"오른쪽 바퀴: {rightWheelLinearVelocity:F3}m/s");
+        Debug.Log($"속도 차이: {rightWheelLinearVelocity - leftWheelLinearVelocity:F3}m/s");
+        
+        if (isRotating)
+        {
+            Debug.Log("─────────────────────────────────────");
+            Debug.Log("🎯 ICC 계산 결과");
+            Debug.Log("─────────────────────────────────────");
+            Debug.Log($"회전 반지름 (바퀴 기준): {currentTurningRadius:F2}m");
+            Debug.Log($"각속도: {calculatedAngularVelocity * Mathf.Rad2Deg:F2}도/초");
+            Debug.Log($"ICC 위치: {currentICC}");
+            Debug.Log($"회전 중심: {rotationPivotPoint}");
+            
+            // 휠체어 원형 경로 정보 추가
+            Vector3 chairToICC = currentICC - transform.position;
+            float chairRotationRadius = new Vector3(chairToICC.x, 0, chairToICC.z).magnitude;
+            float chairTangentialSpeed = Mathf.Abs(calculatedAngularVelocity) * chairRotationRadius;
+            
+            Debug.Log($"휠체어 회전 반지름: {chairRotationRadius:F2}m");
+            Debug.Log($"휠체어 접선 속도: {chairTangentialSpeed:F2}m/s");
+            Debug.Log($"계산된 targetVelocity: {targetVelocity}");
+            Debug.Log($"targetVelocity 크기: {targetVelocity.magnitude:F2}m/s");
+            
+            string rotationDirection = calculatedAngularVelocity > 0 ? "좌회전 (반시계)" : "우회전 (시계)";
+            string fasterWheel = rightWheelLinearVelocity > leftWheelLinearVelocity ? "오른쪽" : "왼쪽";
+            Debug.Log($"회전 방향: {rotationDirection} ({fasterWheel} 바퀴가 더 빠름)");
+            Debug.Log($"바퀴 속도 분석: 왼쪽 {leftWheelLinearVelocity:F3}m/s, 오른쪽 {rightWheelLinearVelocity:F3}m/s");
+            
+            // ICC 물리학적 설명
+            string iccSide = currentTurningRadius > 0 ? "오른쪽" : "왼쪽";
+            Debug.Log($"ICC 위치: 바퀴 중심에서 {iccSide}쪽 {Mathf.Abs(currentTurningRadius):F2}m 지점");
+            
+            // 회전 방향 검증
+            bool isCorrectDirection = (rightWheelLinearVelocity > leftWheelLinearVelocity && calculatedAngularVelocity > 0) || 
+                                    (leftWheelLinearVelocity > rightWheelLinearVelocity && calculatedAngularVelocity < 0);
+            Debug.Log($"회전 방향 정확성: {(isCorrectDirection ? "✅ 정확함" : "❌ 오류")}");
+            
+            // 실제 거리 기반 계산 검증
+            float speedSum = leftWheelLinearVelocity + rightWheelLinearVelocity;
+            float speedDiff = rightWheelLinearVelocity - leftWheelLinearVelocity;
+            float theoreticalRadius = actualDistance * speedSum / (2f * speedDiff);
+            Debug.Log($"이론적 회전 반지름: {theoreticalRadius:F2}m (제한 전)");
+            
+            Debug.Log("─────────────────────────────────────");
+            Debug.Log("🎯 휠체어 원형 경로 이동");
+            Debug.Log("─────────────────────────────────────");
+            Debug.Log($"휠체어 중심 → ICC 벡터: {chairToICC}");
+            Debug.Log($"원형 경로 반지름: {chairRotationRadius:F2}m");
+            Debug.Log($"원형 경로 접선 속도: {chairTangentialSpeed:F2}m/s");
+            
+            // 접선 방향 계산 및 표시
+            Vector3 radiusVector = transform.position - currentICC;
+            radiusVector.y = 0;
+            if (radiusVector.magnitude > 0.001f)
+            {
+                Vector3 tangentDirection = Vector3.Cross(Vector3.up, radiusVector).normalized;
+                if (calculatedAngularVelocity < 0) tangentDirection = -tangentDirection;
+                Debug.Log($"접선 방향 벡터: {tangentDirection}");
+                Debug.Log($"접선 방향 속도: {targetVelocity}");
+                Debug.Log($"원형 이동 검증: v = ω × r = {calculatedAngularVelocity * Mathf.Rad2Deg:F1}° × {chairRotationRadius:F2}m = {chairTangentialSpeed:F2}m/s");
+            }
+            else
+            {
+                Debug.Log("ICC와 휠체어가 너무 가까움 - 제자리 회전");
+            }
+            
+            // 토크 계산 정보 (사용하지 않지만 참고용)
+            float torqueMagnitude = Mathf.Abs(calculatedAngularVelocity) * rotationTorqueMultiplier * chairRigidbody.mass;
+            float distanceFactor = Mathf.Clamp01(maxTurningRadius / Mathf.Abs(currentTurningRadius));
+            float finalTorque = torqueMagnitude * distanceFactor;
+            
+            Debug.Log("─────────────────────────────────────");
+            Debug.Log("⚡ 각속도 제어 (직접 적용)");
+            Debug.Log("─────────────────────────────────────");
+            Debug.Log($"목표 각속도: {calculatedAngularVelocity * Mathf.Rad2Deg:F1}도/초");
+            Debug.Log($"현재 Y축 각속도: {chairRigidbody.angularVelocity.y * Mathf.Rad2Deg:F1}도/초");
+            Debug.Log($"회전 스무딩: {rotationSmoothing}");
+            
+            Debug.Log("─────────────────────────────────────");
+            Debug.Log("🌀 ICC 축 기반 회전 시스템");
+            Debug.Log("─────────────────────────────────────");
+            Debug.Log($"Y축 회전 변화량: {iccYRotationDelta:F3}도/프레임");
+            Debug.Log($"누적 ICC 회전량: {accumulatedIccRotation:F1}도");
+            Debug.Log($"현재 휠체어 Y축 회전: {transform.eulerAngles.y:F1}도");
+            Debug.Log($"ICC 축 기반 회전 활성화: {isRotating && Mathf.Abs(currentTurningRadius) < maxTurningRadius}");
+            Debug.Log($"Transform.RotateAround 사용: ICC 축을 중심으로 실제 회전");
+            Debug.Log($"Rigidbody 각속도: Transform 회전으로 대체됨");
+            
+            Debug.Log("─────────────────────────────────────");
+            Debug.Log("🛡️ 회전 안정성 상태");
+            Debug.Log("─────────────────────────────────────");
+            Debug.Log($"스무딩된 회전량: {smoothedRotationDelta:F3}도/프레임");
+            Debug.Log($"이전 프레임 회전량: {lastRotationDelta:F3}도/프레임");
+            Debug.Log($"회전 안정화 활성화: {enableRotationStabilization}");
+            Debug.Log($"ICC 회전 스무딩: {iccRotationSmoothing}");
+            Debug.Log($"최대 회전 속도 제한: {maxRotationDeltaPerFrame}도/프레임");
+            Debug.Log($"최소 회전 임계값: {minRotationThreshold}도");
+            
+            float rotationStability = Mathf.Abs(iccYRotationDelta - lastRotationDelta);
+            string stabilityStatus = rotationStability < 0.1f ? "안정" : rotationStability < 0.5f ? "보통" : "불안정";
+            Debug.Log($"회전 안정성: {stabilityStatus} (변화량: {rotationStability:F3}도)");
+        }
+        else
+        {
+            Debug.Log("📐 직진 이동 중 (회전 없음)");
+        }
+        
+        Debug.Log("─────────────────────────────────────");
+        Debug.Log("🎛️ ICC 시스템 설정");
+        Debug.Log("─────────────────────────────────────");
+        Debug.Log($"최소 회전반지름: {minTurningRadius}m");
+        Debug.Log($"최대 회전반지름: {maxTurningRadius}m");
+        Debug.Log($"토크 배율: {rotationTorqueMultiplier}");
+        Debug.Log($"기즈모 표시: {showICCGizmos}");
+        Debug.Log("══════════════════════════════════════════════════");
+    }
+    
+    /// <summary>
+    /// ICC 좌회전 테스트
+    /// </summary>
+    [ContextMenu("Test ICC Turn Left")]
+    public void TestICCTurnLeft()
+    {
+        if (!enableICCRotation)
+        {
+            Debug.LogWarning("⚠️ ICC 시스템이 비활성화되어 있습니다!");
+            return;
+        }
+        
+        StopAllCoroutines();
+        // 오른쪽 바퀴가 더 빠르게 회전 (좌회전) - 양수 각속도
+        StartCoroutine(TestMovementCoroutine(1f, -3f, 5f, "ICC 좌회전 (수정됨)"));
+        Debug.Log("🎯 ICC 좌회전 테스트 시작 - 오른쪽 바퀴가 더 빠름 → 좌회전 (반시계)");
+    }
+    
+    /// <summary>
+    /// ICC 우회전 테스트
+    /// </summary>
+    [ContextMenu("Test ICC Turn Right")]
+    public void TestICCTurnRight()
+    {
+        if (!enableICCRotation)
+        {
+            Debug.LogWarning("⚠️ ICC 시스템이 비활성화되어 있습니다!");
+            return;
+        }
+        
+        StopAllCoroutines();
+        // 왼쪽 바퀴가 더 빠르게 회전 (우회전) - 음수 각속도
+        StartCoroutine(TestMovementCoroutine(3f, -1f, 5f, "ICC 우회전 (수정됨)"));
+        Debug.Log("🎯 ICC 우회전 테스트 시작 - 왼쪽 바퀴가 더 빠름 → 우회전 (시계)");
+    }
+    
+    /// <summary>
+    /// ICC와 레거시 시스템 비교 테스트
+    /// </summary>
+    [ContextMenu("Compare ICC vs Legacy")]
+    public void CompareICCvsLegacy()
+    {
+        Debug.Log("═══════════════════════════════════════");
+        Debug.Log("⚖️ ICC vs 레거시 시스템 비교");
+        Debug.Log("═══════════════════════════════════════");
+        
+        // 현재 상태 저장
+        bool originalICCState = enableICCRotation;
+        
+        // 테스트 입력값
+        float testLeftDelta = 2f;
+        float testRightDelta = -1f;
+        
+        // ICC 모드 테스트
+        enableICCRotation = true;
+        leftWheelDeltaZ = testLeftDelta;
+        rightWheelDeltaZ = testRightDelta;
+        CalculateMovementFromZRotation();
+        
+        Vector3 iccTargetVel = targetVelocity;
+        float iccAngularVel = targetAngularVelocity;
+        
+        Debug.Log($"🎯 ICC 모드 결과:");
+        Debug.Log($"  선속도: {iccTargetVel.magnitude:F3}m/s");
+        Debug.Log($"  각속도: {iccAngularVel * Mathf.Rad2Deg:F2}도/초");
+        Debug.Log($"  회전반지름: {currentTurningRadius:F2}m");
+        
+        // 레거시 모드 테스트
+        enableICCRotation = false;
+        leftWheelDeltaZ = testLeftDelta;
+        rightWheelDeltaZ = testRightDelta;
+        CalculateMovementFromZRotation();
+        
+        Vector3 legacyTargetVel = targetVelocity;
+        float legacyAngularVel = targetAngularVelocity;
+        
+        Debug.Log($"🚗 레거시 모드 결과:");
+        Debug.Log($"  선속도: {legacyTargetVel.magnitude:F3}m/s");
+        Debug.Log($"  각속도: {legacyAngularVel * Mathf.Rad2Deg:F2}도/초");
+        
+        // 차이점 분석
+        float speedDiff = iccTargetVel.magnitude - legacyTargetVel.magnitude;
+        float angularDiff = (iccAngularVel - legacyAngularVel) * Mathf.Rad2Deg;
+        
+        Debug.Log($"📊 차이점:");
+        Debug.Log($"  선속도 차이: {speedDiff:F3}m/s");
+        Debug.Log($"  각속도 차이: {angularDiff:F2}도/초");
+        
+        // 원래 상태 복원
+        enableICCRotation = originalICCState;
+        StopWheels();
+        
+        Debug.Log("═══════════════════════════════════════");
+    }
+    
+    /// <summary>
     /// 전진 테스트 (5초간)
     /// </summary>
     public void TestForward()
@@ -909,21 +1460,21 @@ public class WheelchairController : MonoBehaviour
     }
     
     /// <summary>
-    /// 좌회전 테스트 (5초간)
+    /// 좌회전 테스트 (5초간) - 수정된 방향
     /// </summary>
     public void TestTurnLeft()
     {
         StopAllCoroutines();
-        StartCoroutine(TestMovementCoroutine(1f, -3f, 5f, "좌회전")); // 오른쪽이 더 빠르게 전진
+        StartCoroutine(TestMovementCoroutine(1f, -3f, 5f, "좌회전 (수정됨)")); // 오른쪽이 더 빠르게 전진 → 좌회전
     }
     
     /// <summary>
-    /// 우회전 테스트 (5초간)
+    /// 우회전 테스트 (5초간) - 수정된 방향
     /// </summary>
     public void TestTurnRight()
     {
         StopAllCoroutines();
-        StartCoroutine(TestMovementCoroutine(3f, -1f, 5f, "우회전")); // 왼쪽이 더 빠르게 전진
+        StartCoroutine(TestMovementCoroutine(3f, -1f, 5f, "우회전 (수정됨)")); // 왼쪽이 더 빠르게 전진 → 우회전
     }
     
     /// <summary>
@@ -1197,17 +1748,203 @@ public class WheelchairController : MonoBehaviour
         Gizmos.color = Color.blue;
         Gizmos.DrawRay(transform.position, forwardDir * gizmoLength);
         
+        // 바퀴 위치 및 연결 표시
+        if (leftWheelTransform != null && rightWheelTransform != null)
+        {
         // 바퀴 위치 표시 (노란색)
         Gizmos.color = Color.yellow;
-        if (leftWheelTransform != null)
-        {
             Gizmos.DrawWireSphere(leftWheelTransform.position, 0.1f);
+            Gizmos.DrawWireSphere(rightWheelTransform.position, 0.1f);
+            
+            // 휠체어 중심에서 각 바퀴로의 연결선 (회색)
+            Gizmos.color = Color.gray;
             Gizmos.DrawLine(transform.position, leftWheelTransform.position);
+            Gizmos.DrawLine(transform.position, rightWheelTransform.position);
+            
+            // 실제 바퀴 중심점 표시 (하늘색)
+            Vector3 wheelCenter = GetWheelCenterPoint();
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireSphere(wheelCenter, 0.15f);
+            
+            // 바퀴간 연결선 (실제 거리 표시, 흰색)
+            Gizmos.color = Color.white;
+            Gizmos.DrawLine(leftWheelTransform.position, rightWheelTransform.position);
+            
+            #if UNITY_EDITOR
+            // 실제 거리 정보 표시
+            float actualDistance = GetActualWheelbaseWidth();
+            Vector3 midPoint = (leftWheelTransform.position + rightWheelTransform.position) * 0.5f;
+            UnityEditor.Handles.Label(midPoint + Vector3.up * 0.3f, 
+                $"실제 거리: {actualDistance:F2}m\n설정값: {wheelbaseWidth:F2}m");
+            #endif
         }
+        
+        // ICC 기반 회전 시각화
+        if (enableICCRotation && showICCGizmos && isRotating && Mathf.Abs(currentTurningRadius) < maxTurningRadius)
+        {
+            Vector3 wheelCenter = GetWheelCenterPoint();
+            
+            // 회전축(ICC) 위치 강조 표시 (빨간색 구와 축)
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(currentICC, 0.2f);
+            
+            // 회전축 Y축 표시 (빨간색 세로선)
+            Gizmos.color = Color.red;
+            Gizmos.DrawLine(currentICC - Vector3.up * 0.5f, currentICC + Vector3.up * 1.5f);
+            
+            // 회전축 위치 표식 (X자 형태)
+            Vector3 xMarkSize = Vector3.one * 0.1f;
+            Gizmos.DrawLine(currentICC - xMarkSize, currentICC + xMarkSize);
+            Gizmos.DrawLine(currentICC - new Vector3(xMarkSize.x, 0, -xMarkSize.z), currentICC + new Vector3(xMarkSize.x, 0, -xMarkSize.z));
+            
+            // 바퀴 중심에서 ICC로의 연결선 (주황색 - 바퀴 회전 반지름)
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawLine(wheelCenter, currentICC);
+            
+            // 휠체어 중심에서 ICC로의 연결선 (하늘색 - 휠체어 회전 반지름)
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawLine(transform.position, currentICC);
+            
+            // 휠체어 중심의 원형 궤도 표시 (녹색 원)
+            Vector3 chairToICC = currentICC - transform.position;
+            float chairRotationRadius = new Vector3(chairToICC.x, 0, chairToICC.z).magnitude;
+            
+            Gizmos.color = Color.green;
+            int circleSegments = 36;
+            Vector3 lastCirclePoint = Vector3.zero;
+            
+            for (int i = 0; i <= circleSegments; i++)
+            {
+                float angle = (360f / circleSegments) * i * Mathf.Deg2Rad;
+                Vector3 circlePoint = currentICC + new Vector3(
+                    Mathf.Cos(angle) * chairRotationRadius, 
+                    0, 
+                    Mathf.Sin(angle) * chairRotationRadius
+                );
+                
+                if (i > 0)
+                {
+                    Gizmos.DrawLine(lastCirclePoint, circlePoint);
+                }
+                lastCirclePoint = circlePoint;
+            }
+            
+            // 바퀴 중심의 회전 경로 표시 (자홍색 호) - 기존 유지
+            Gizmos.color = Color.magenta;
+            Vector3 fromICC = wheelCenter - currentICC;
+            float startAngle = Mathf.Atan2(fromICC.z, fromICC.x) * Mathf.Rad2Deg;
+            
+            // 호를 그리기 위한 점들 (XZ 평면에서)
+            int arcSegments = 30;
+            float arcRange = 90f;
+            Vector3 lastPoint = Vector3.zero;
+            
+            for (int i = 0; i <= arcSegments; i++)
+            {
+                float angle = (startAngle - arcRange * 0.5f + (arcRange / arcSegments) * i) * Mathf.Deg2Rad;
+                Vector3 point = currentICC + new Vector3(Mathf.Cos(angle) * Mathf.Abs(currentTurningRadius), 0, Mathf.Sin(angle) * Mathf.Abs(currentTurningRadius));
+                
+                if (i > 0)
+                {
+                    Gizmos.DrawLine(lastPoint, point);
+                }
+                lastPoint = point;
+            }
+            
+            // 휠체어의 접선 속도 방향 표시 (밝은 녹색 화살표)
+            Vector3 radiusVector = transform.position - currentICC;
+            radiusVector.y = 0;
+            
+            if (radiusVector.magnitude > 0.001f)
+            {
+                Vector3 tangentDirection = Vector3.Cross(Vector3.up, radiusVector).normalized;
+                if (calculatedAngularVelocity < 0) tangentDirection = -tangentDirection;
+                
+                Gizmos.color = Color.green;
+                Vector3 tangentStart = transform.position;
+                Vector3 tangentEnd = tangentStart + tangentDirection * gizmoLength;
+                Gizmos.DrawRay(tangentStart, tangentDirection * gizmoLength);
+                
+                // 접선 화살표 끝부분
+                Vector3 arrowSide1 = tangentEnd - tangentDirection * 0.3f + Vector3.Cross(tangentDirection, Vector3.up) * 0.15f;
+                Vector3 arrowSide2 = tangentEnd - tangentDirection * 0.3f - Vector3.Cross(tangentDirection, Vector3.up) * 0.15f;
+                Gizmos.DrawLine(tangentEnd, arrowSide1);
+                Gizmos.DrawLine(tangentEnd, arrowSide2);
+            }
+            
+            // 바퀴 중심의 회전 방향 화살표 (하늘색) - 기존 유지
+            Vector3 wheelTangentDir = Vector3.Cross(Vector3.up, fromICC.normalized);
+            if (calculatedAngularVelocity < 0) wheelTangentDir = -wheelTangentDir;
+            
+            Gizmos.color = Color.cyan;
+            Vector3 wheelArrowStart = wheelCenter;
+            Vector3 wheelArrowEnd = wheelArrowStart + wheelTangentDir * gizmoLength * 0.7f;
+            Gizmos.DrawRay(wheelArrowStart, wheelTangentDir * gizmoLength * 0.7f);
+            
+            // 바퀴 화살표 끝부분
+            Vector3 wheelArrowSide1 = wheelArrowEnd - wheelTangentDir * 0.3f + Vector3.Cross(wheelTangentDir, Vector3.up) * 0.15f;
+            Vector3 wheelArrowSide2 = wheelArrowEnd - wheelTangentDir * 0.3f - Vector3.Cross(wheelTangentDir, Vector3.up) * 0.15f;
+            Gizmos.DrawLine(wheelArrowEnd, wheelArrowSide1);
+            Gizmos.DrawLine(wheelArrowEnd, wheelArrowSide2);
+            
+            // 회전 중심축 라벨과 정보 표시
+            #if UNITY_EDITOR
+            string rotationDirection = calculatedAngularVelocity > 0 ? "좌회전 (반시계)" : "우회전 (시계)";
+            string fasterWheel = leftWheelLinearVelocity > rightWheelLinearVelocity ? "왼쪽" : "오른쪽";
+            float actualDistance = GetActualWheelbaseWidth();
+            
+            // ICC 축 정보
+            UnityEditor.Handles.Label(currentICC + Vector3.up * 0.8f, 
+                $"🎯 회전축 (ICC)\n{rotationDirection}\n{fasterWheel} 바퀴가 더 빠름\n바퀴 R: {currentTurningRadius:F1}m\n휠체어 R: {chairRotationRadius:F1}m\nω: {calculatedAngularVelocity * Mathf.Rad2Deg:F1}°/s\nL: {actualDistance:F2}m");
+            
+            // 회전 반지름 표시들
+            Vector3 wheelRadiusLabelPos = wheelCenter + (currentICC - wheelCenter) * 0.5f + Vector3.up * 0.2f;
+            UnityEditor.Handles.Label(wheelRadiusLabelPos, $"바퀴 R: {Mathf.Abs(currentTurningRadius):F2}m");
+            
+            Vector3 chairRadiusLabelPos = transform.position + (currentICC - transform.position) * 0.5f + Vector3.up * 0.4f;
+            UnityEditor.Handles.Label(chairRadiusLabelPos, $"휠체어 R: {chairRotationRadius:F2}m");
+            
+            // 접선 속도 표시
+            if (targetVelocity.magnitude > 0.01f)
+            {
+                UnityEditor.Handles.Label(transform.position + Vector3.up * 0.6f, 
+                    $"접선속도: {targetVelocity.magnitude:F2}m/s\n방향: {targetVelocity.normalized}");
+            }
+            #endif
+        }
+        
+        // 바퀴 선속도 시각화 (개선된 표시)
+        if (enableICCRotation && (Mathf.Abs(leftWheelLinearVelocity) > 0.01f || Mathf.Abs(rightWheelLinearVelocity) > 0.01f))
+        {
+            // 왼쪽 바퀴 속도 (초록색)
+            if (leftWheelTransform != null)
+            {
+                Gizmos.color = Color.green;
+                Vector3 leftVelDir = transform.forward * Mathf.Sign(leftWheelLinearVelocity);
+                float arrowLength = Mathf.Abs(leftWheelLinearVelocity) * 0.5f;
+                Gizmos.DrawRay(leftWheelTransform.position, leftVelDir * arrowLength);
+                
+                // 속도 값 표시
+                #if UNITY_EDITOR
+                UnityEditor.Handles.Label(leftWheelTransform.position + Vector3.up * 0.25f, 
+                    $"L: {leftWheelLinearVelocity:F2}m/s");
+                #endif
+            }
+            
+            // 오른쪽 바퀴 속도 (파란색)
         if (rightWheelTransform != null)
         {
-            Gizmos.DrawWireSphere(rightWheelTransform.position, 0.1f);
-            Gizmos.DrawLine(transform.position, rightWheelTransform.position);
+                Gizmos.color = Color.blue;
+                Vector3 rightVelDir = transform.forward * Mathf.Sign(rightWheelLinearVelocity);
+                float arrowLength = Mathf.Abs(rightWheelLinearVelocity) * 0.5f;
+                Gizmos.DrawRay(rightWheelTransform.position, rightVelDir * arrowLength);
+                
+                // 속도 값 표시
+                #if UNITY_EDITOR
+                UnityEditor.Handles.Label(rightWheelTransform.position + Vector3.up * 0.25f, 
+                    $"R: {rightWheelLinearVelocity:F2}m/s");
+                #endif
+            }
         }
         
         // 지면 감지 포인트 표시 (초록색/빨간색)
@@ -1237,6 +1974,8 @@ public class WheelchairController : MonoBehaviour
             Gizmos.color = Color.magenta;
             Gizmos.DrawRay(transform.position, targetVelocity.normalized * gizmoLength * 0.5f);
         }
+        
+        
     }
     
     void OnDrawGizmos()
@@ -1350,6 +2089,28 @@ public class WheelchairController : MonoBehaviour
         wheelRadius = Mathf.Max(0.1f, wheelRadius);
         slopeZRotationForce = Mathf.Max(0f, slopeZRotationForce);
         
+        // ICC 시스템 설정값 검증
+        wheelbaseWidth = Mathf.Max(0.1f, wheelbaseWidth);
+        rotationTorqueMultiplier = Mathf.Max(1f, rotationTorqueMultiplier);
+        minTurningRadius = Mathf.Max(0.01f, minTurningRadius);
+        maxTurningRadius = Mathf.Max(minTurningRadius + 0.1f, maxTurningRadius);
+        
+        // 회전 안정성 설정값 검증
+        iccRotationSmoothing = Mathf.Clamp(iccRotationSmoothing, 1f, 20f);
+        maxRotationDeltaPerFrame = Mathf.Clamp(maxRotationDeltaPerFrame, 0.1f, 5f);
+        minRotationThreshold = Mathf.Clamp(minRotationThreshold, 0.001f, 0.1f);
+        
+        // 회전 안정성 설정 경고
+        if (maxRotationDeltaPerFrame < 0.5f)
+        {
+            Debug.LogWarning("⚠️ 최대 회전 속도가 너무 낮습니다. 응답성이 떨어질 수 있습니다.");
+        }
+        
+        if (iccRotationSmoothing < 5f)
+        {
+            Debug.LogWarning("⚠️ ICC 회전 스무딩이 너무 낮습니다. 떨림이 발생할 수 있습니다.");
+        }
+        
         // 경사로 설정 검증
         slopeThreshold = Mathf.Clamp(slopeThreshold, 0f, 30f);
         maxSlideAngle = Mathf.Clamp(maxSlideAngle, slopeThreshold + 1f, 90f);
@@ -1376,6 +2137,27 @@ public class WheelchairController : MonoBehaviour
         {
             Debug.LogWarning("⚠️ 경사로 Z회전 힘이 너무 높습니다. 권장값: 0~5");
         }
+        
+        // ICC 시스템 설정값 경고
+        if (enableICCRotation)
+        {
+            if (wheelbaseWidth < 0.2f || wheelbaseWidth > 2f)
+            {
+                Debug.LogWarning("⚠️ 바퀴간 거리가 비정상적입니다. 권장값: 0.2~2.0m");
+            }
+            
+            if (rotationTorqueMultiplier > 2000f)
+            {
+                Debug.LogWarning("⚠️ 토크 배율이 너무 높습니다. 권장값: 100~1000");
+            }
+            
+            if (minTurningRadius < 0.05f)
+            {
+                Debug.LogWarning("⚠️ 최소 회전반지름이 너무 작습니다. 권장값: 0.1m 이상");
+            }
+        }
+        
+       
     }
     
     void ProcessVirtualSlopeForces()
@@ -1472,5 +2254,372 @@ public class WheelchairController : MonoBehaviour
         {
             Debug.Log($"🧪 외부 가상 경사로 힘 적용: {force:F2} → 시간배율: {timeScaledForce:F3}");
         }
+    }
+    
+    // 바퀴간 실제 거리 계산 함수
+    float GetActualWheelbaseWidth()
+    {
+        return wheelbaseWidth; // 이제 항상 실제 거리가 저장됨
+    }
+    
+    // 두 바퀴의 중심점 계산 (월드 좌표)
+    Vector3 GetWheelCenterPoint()
+    {
+        if (leftWheelTransform == null || rightWheelTransform == null)
+        {
+            return transform.position; // 기본값으로 휠체어 중심 사용
+        }
+        
+        return (leftWheelTransform.position + rightWheelTransform.position) * 0.5f;
+    }
+    
+    
+    
+    /// <summary>
+    /// ICC 원형 경로 테스트 (한쪽 바퀴만 회전)
+    /// </summary>
+    [ContextMenu("Test ICC Circular Path - Right Only")]
+    public void TestICCCircularPathRightOnly()
+    {
+        if (!enableICCRotation)
+        {
+            Debug.LogWarning("⚠️ ICC 시스템이 비활성화되어 있습니다!");
+            return;
+        }
+        
+        StopAllCoroutines();
+        // 오른쪽 바퀴만 회전 (왼쪽 정지) → 왼쪽 바퀴를 중심으로 한 원형 경로
+        StartCoroutine(TestMovementCoroutine(0f, -3f, 8f, "ICC 원형 경로 (오른쪽만)"));
+        Debug.Log("🎯 ICC 원형 경로 테스트 시작 - 오른쪽 바퀴만 회전 → 왼쪽 바퀴 중심 원형 이동");
+    }
+    
+    /// <summary>
+    /// ICC 원형 경로 테스트 (왼쪽 바퀴만 회전)
+    /// </summary>
+    [ContextMenu("Test ICC Circular Path - Left Only")]
+    public void TestICCCircularPathLeftOnly()
+    {
+        if (!enableICCRotation)
+        {
+            Debug.LogWarning("⚠️ ICC 시스템이 비활성화되어 있습니다!");
+            return;
+        }
+        
+        StopAllCoroutines();
+        // 왼쪽 바퀴만 회전 (오른쪽 정지) → 오른쪽 바퀴를 중심으로 한 원형 경로
+        StartCoroutine(TestMovementCoroutine(3f, 0f, 8f, "ICC 원형 경로 (왼쪽만)"));
+        Debug.Log("🎯 ICC 원형 경로 테스트 시작 - 왼쪽 바퀴만 회전 → 오른쪽 바퀴 중심 원형 이동");
+    }
+    
+    /// <summary>
+    /// ICC vs 레거시 원형 경로 비교 테스트
+    /// </summary>
+    [ContextMenu("Compare Circular Path ICC vs Legacy")]
+    public void CompareCircularPathICCvsLegacy()
+    {
+        Debug.Log("═══════════════════════════════════════");
+        Debug.Log("🔄 원형 경로 ICC vs 레거시 비교");
+        Debug.Log("═══════════════════════════════════════");
+        
+        // 현재 상태 저장
+        bool originalICCState = enableICCRotation;
+        
+        // 테스트 입력값 (한쪽만 회전)
+        float testLeftDelta = 3f;
+        float testRightDelta = 0f;
+        
+        // ICC 모드 테스트
+        enableICCRotation = true;
+        leftWheelDeltaZ = testLeftDelta;
+        rightWheelDeltaZ = testRightDelta;
+        CalculateMovementFromZRotation();
+        
+        Vector3 iccTargetVel = targetVelocity;
+        float iccAngularVel = targetAngularVelocity;
+        
+        Debug.Log($"🎯 ICC 원형 경로 모드 결과:");
+        Debug.Log($"  targetVelocity: {iccTargetVel} (크기: {iccTargetVel.magnitude:F3}m/s)");
+        Debug.Log($"  각속도: {iccAngularVel * Mathf.Rad2Deg:F2}도/초");
+        
+        if (isRotating)
+        {
+            Vector3 chairToICC = currentICC - transform.position;
+            float chairRotationRadius = new Vector3(chairToICC.x, 0, chairToICC.z).magnitude;
+            Debug.Log($"  휠체어 회전반지름: {chairRotationRadius:F2}m");
+            Debug.Log($"  ICC 위치: {currentICC}");
+            Debug.Log($"  접선속도 방향: {iccTargetVel.normalized}");
+        }
+        
+        // 레거시 모드 테스트
+        enableICCRotation = false;
+        leftWheelDeltaZ = testLeftDelta;
+        rightWheelDeltaZ = testRightDelta;
+        CalculateMovementFromZRotation();
+        
+        Vector3 legacyTargetVel = targetVelocity;
+        float legacyAngularVel = targetAngularVelocity;
+        
+        Debug.Log($"🚗 레거시 모드 결과:");
+        Debug.Log($"  targetVelocity: {legacyTargetVel} (크기: {legacyTargetVel.magnitude:F3}m/s)");
+        Debug.Log($"  각속도: {legacyAngularVel * Mathf.Rad2Deg:F2}도/초");
+        
+        // 차이점 분석
+        float speedDiff = iccTargetVel.magnitude - legacyTargetVel.magnitude;
+        float angularDiff = (iccAngularVel - legacyAngularVel) * Mathf.Rad2Deg;
+        Vector3 directionDiff = iccTargetVel.normalized - legacyTargetVel.normalized;
+        
+        Debug.Log($"📊 차이점 분석:");
+        Debug.Log($"  속도 크기 차이: {speedDiff:F3}m/s");
+        Debug.Log($"  각속도 차이: {angularDiff:F2}도/초");
+        Debug.Log($"  방향 차이: {directionDiff} (크기: {directionDiff.magnitude:F3})");
+        
+        Debug.Log($"📝 분석 결과:");
+        Debug.Log($"  ICC 모드: 원형 경로 접선 이동 (정확한 물리 기반)");
+        Debug.Log($"  레거시 모드: 직진 이동 + 회전 (근사치 기반)");
+        
+        // 원래 상태 복원
+        enableICCRotation = originalICCState;
+        StopWheels();
+        
+        Debug.Log("═══════════════════════════════════════");
+    }
+    
+    /// <summary>
+    /// ICC 원운동 시스템 상세 디버그
+    /// </summary>
+    [ContextMenu("Debug ICC Circular Motion")]
+    public void DebugICCCircularMotion()
+    {
+        Debug.Log("══════════════════════════════════════════════════");
+        Debug.Log("🌀 ICC 원운동 시스템 상세 분석");
+        Debug.Log("══════════════════════════════════════════════════");
+        
+        if (!enableICCRotation)
+        {
+            Debug.LogWarning("⚠️ ICC 시스템이 비활성화되어 있습니다!");
+            return;
+        }
+        
+        if (!isRotating)
+        {
+            Debug.Log("📐 현재 직진 이동 중 - 원운동 없음");
+            return;
+        }
+        
+        Vector3 currentVelocity = chairRigidbody.velocity;
+        Vector3 radiusVector = transform.position - currentICC;
+        radiusVector.y = 0;
+        
+        Debug.Log("─────────────────────────────────────");
+        Debug.Log("🎯 ICC 기본 정보");
+        Debug.Log("─────────────────────────────────────");
+        Debug.Log($"ICC 위치: {currentICC}");
+        Debug.Log($"휠체어 위치: {transform.position}");
+        Debug.Log($"반지름 벡터: {radiusVector} (크기: {radiusVector.magnitude:F3}m)");
+        Debug.Log($"계산된 각속도: {calculatedAngularVelocity * Mathf.Rad2Deg:F1}도/초");
+        Debug.Log($"바퀴 회전반지름: {currentTurningRadius:F2}m");
+        
+        if (radiusVector.magnitude > 0.001f)
+        {
+            // 접선 방향 계산
+            Vector3 tangentDirection = Vector3.Cross(Vector3.up, radiusVector.normalized);
+            if (calculatedAngularVelocity < 0) tangentDirection = -tangentDirection;
+            
+            // 원운동 속도 계산
+            Vector3 circularVelocity = tangentDirection * (Mathf.Abs(calculatedAngularVelocity) * radiusVector.magnitude);
+            
+            // 속도 배율 적용
+            float speedSum = leftWheelLinearVelocity + rightWheelLinearVelocity;
+            float speedMultiplier = speedSum >= 0 ? forwardSpeedMultiplier : backwardSpeedMultiplier;
+            Vector3 scaledCircularVelocity = circularVelocity * speedMultiplier;
+            
+            Debug.Log("─────────────────────────────────────");
+            Debug.Log("🌀 원운동 계산 결과");
+            Debug.Log("─────────────────────────────────────");
+            Debug.Log($"접선 방향: {tangentDirection}");
+            Debug.Log($"기본 원운동 속도: {circularVelocity} (크기: {circularVelocity.magnitude:F2}m/s)");
+            Debug.Log($"배율 적용 후: {scaledCircularVelocity} (크기: {scaledCircularVelocity.magnitude:F2}m/s)");
+            Debug.Log($"속도 배율: {speedMultiplier:F2}");
+            
+            // 공식 검증
+            float theoreticalSpeed = Mathf.Abs(calculatedAngularVelocity) * radiusVector.magnitude;
+            Debug.Log($"공식 검증: v = ω × r = {calculatedAngularVelocity * Mathf.Rad2Deg:F1}° × {radiusVector.magnitude:F3}m = {theoreticalSpeed:F3}m/s");
+            
+            Debug.Log("─────────────────────────────────────");
+            Debug.Log("⚡ 실제 적용된 속도");
+            Debug.Log("─────────────────────────────────────");
+            Debug.Log($"현재 Rigidbody 속도: {currentVelocity}");
+            Debug.Log($"수평 속도 크기: {new Vector3(currentVelocity.x, 0, currentVelocity.z).magnitude:F2}m/s");
+            Debug.Log($"실제 각속도: {chairRigidbody.angularVelocity.y * Mathf.Rad2Deg:F1}도/초");
+            
+            // 회전 방향 분석
+            string rotationDir = calculatedAngularVelocity > 0 ? "좌회전 (반시계)" : "우회전 (시계)";
+            string fasterWheel = rightWheelLinearVelocity > leftWheelLinearVelocity ? "오른쪽" : "왼쪽";
+            Debug.Log($"회전 방향: {rotationDir} ({fasterWheel} 바퀴가 더 빠름)");
+            
+            // ICC와 바퀴 중심점 관계
+            Vector3 wheelCenter = GetWheelCenterPoint();
+            Vector3 wheelToICC = currentICC - wheelCenter;
+            Debug.Log($"바퀴 중심점: {wheelCenter}");
+            Debug.Log($"바퀴중심 → ICC: {wheelToICC} (거리: {wheelToICC.magnitude:F2}m)");
+            
+            // 속도 일치성 검증
+            Vector3 expectedVelocity = tangentDirection * theoreticalSpeed * speedMultiplier;
+            Vector3 actualHorizontalVelocity = new Vector3(currentVelocity.x, 0, currentVelocity.z);
+            Vector3 velocityDiff = expectedVelocity - actualHorizontalVelocity;
+            
+            Debug.Log("─────────────────────────────────────");
+            Debug.Log("🔍 속도 일치성 검증");
+            Debug.Log("─────────────────────────────────────");
+            Debug.Log($"예상 속도: {expectedVelocity}");
+            Debug.Log($"실제 수평 속도: {actualHorizontalVelocity}");
+            Debug.Log($"속도 차이: {velocityDiff} (크기: {velocityDiff.magnitude:F3}m/s)");
+            
+            if (velocityDiff.magnitude < 0.1f)
+            {
+                Debug.Log("✅ 속도 일치성 양호 (차이 < 0.1m/s)");
+            }
+            else if (velocityDiff.magnitude < 0.5f)
+            {
+                Debug.Log("⚠️ 속도 차이 보통 (0.1~0.5m/s)");
+            }
+            else
+            {
+                Debug.Log("❌ 속도 차이 큼 (> 0.5m/s) - 시스템 확인 필요");
+            }
+        }
+        else
+        {
+            Debug.Log("⚠️ ICC와 휠체어가 너무 가까움 - 제자리 회전");
+        }
+        
+        Debug.Log("══════════════════════════════════════════════════");
+    }
+    
+    /// <summary>
+    /// 실시간 ICC 원운동 모니터링 (한 번만 실행)
+    /// </summary>
+    [ContextMenu("Monitor ICC Motion Once")]
+    public void MonitorICCMotionOnce()
+    {
+        if (!enableICCRotation || !isRotating)
+        {
+            Debug.Log("📐 ICC 원운동 모니터링: 회전 없음");
+            return;
+        }
+        
+        Vector3 currentVelocity = chairRigidbody.velocity;
+        Vector3 radiusVector = transform.position - currentICC;
+        radiusVector.y = 0;
+        
+        if (radiusVector.magnitude > 0.001f)
+        {
+            Vector3 tangentDirection = Vector3.Cross(Vector3.up, radiusVector.normalized);
+            if (calculatedAngularVelocity < 0) tangentDirection = -tangentDirection;
+            
+            float theoreticalSpeed = Mathf.Abs(calculatedAngularVelocity) * radiusVector.magnitude;
+            float speedSum = leftWheelLinearVelocity + rightWheelLinearVelocity;
+            float speedMultiplier = speedSum >= 0 ? forwardSpeedMultiplier : backwardSpeedMultiplier;
+            
+            Debug.Log($"🌀 ICC 원운동 현재 상태:");
+            Debug.Log($"   반지름: {radiusVector.magnitude:F2}m, 각속도: {calculatedAngularVelocity * Mathf.Rad2Deg:F1}°/s");
+            Debug.Log($"   이론속도: {theoreticalSpeed:F2}m/s, 배율: {speedMultiplier:F2}");
+            Debug.Log($"   실제속도: {new Vector3(currentVelocity.x, 0, currentVelocity.z).magnitude:F2}m/s");
+            Debug.Log($"   접선방향: {tangentDirection}");
+        }
+    }
+    
+   
+    
+    
+    /// <summary>
+    /// 바퀴간 실제 거리를 Transform 위치에서 계산하여 업데이트
+    /// </summary>
+    void UpdateWheelbaseWidth()
+    {
+        if (leftWheelTransform != null && rightWheelTransform != null)
+        {
+            // 두 바퀴 위치의 실제 거리 계산 (XZ 평면에서)
+            Vector3 leftPos = leftWheelTransform.position;
+            Vector3 rightPos = rightWheelTransform.position;
+            
+            // Y축 차이는 무시하고 수평 거리만 계산
+            float calculatedDistance = Vector3.Distance(
+                new Vector3(leftPos.x, 0, leftPos.z), 
+                new Vector3(rightPos.x, 0, rightPos.z)
+            );
+            
+            // 최소 거리 보장 (너무 작으면 계산 오류 발생)
+            wheelbaseWidth = Mathf.Max(calculatedDistance, 0.1f);
+        }
+        else
+        {
+            // Transform이 없으면 기본값 유지
+            if (wheelbaseWidth < 0.1f)
+            {
+                wheelbaseWidth = 0.6f; // 기본값
+            }
+        }
+    }
+    
+    /// <summary>
+    /// ICC 축 기반 회전 테스트 함수들
+    /// </summary>
+    [ContextMenu("Test ICC Axis Rotation Left")]
+    public void TestICCAxisRotationLeft()
+    {
+        if (!enableICCRotation)
+        {
+            Debug.LogWarning("⚠️ ICC 시스템이 비활성화되어 있습니다!");
+            return;
+        }
+        
+        StopAllCoroutines();
+        StartCoroutine(TestMovementCoroutine(1f, -3f, 8f, "ICC 축 기반 좌회전"));
+        Debug.Log("🌀 ICC 축 기반 좌회전 테스트 시작 - Transform.RotateAround 사용");
+    }
+    
+    [ContextMenu("Test ICC Axis Rotation Right")]
+    public void TestICCAxisRotationRight()
+    {
+        if (!enableICCRotation)
+        {
+            Debug.LogWarning("⚠️ ICC 시스템이 비활성화되어 있습니다!");
+            return;
+        }
+        
+        StopAllCoroutines();
+        StartCoroutine(TestMovementCoroutine(3f, -1f, 8f, "ICC 축 기반 우회전"));
+        Debug.Log("🌀 ICC 축 기반 우회전 테스트 시작 - Transform.RotateAround 사용");
+    }
+    
+    [ContextMenu("Debug ICC Rotation Status")]
+    public void DebugICCRotationStatus()
+    {
+        Debug.Log("══════════════════════════════════════════════════");
+        Debug.Log("🌀 ICC 축 기반 회전 상태 진단");
+        Debug.Log("══════════════════════════════════════════════════");
+        Debug.Log($"🔌 ICC 시스템 활성화: {enableICCRotation}");
+        Debug.Log($"🔄 현재 회전 중: {isRotating}");
+        Debug.Log($"📐 회전 반지름: {currentTurningRadius:F2}m");
+        Debug.Log($"⚡ 계산된 각속도: {calculatedAngularVelocity * Mathf.Rad2Deg:F1}도/초");
+        Debug.Log($"🌀 Y축 회전 변화량: {iccYRotationDelta:F3}도/프레임");
+        Debug.Log($"📊 누적 회전량: {accumulatedIccRotation:F1}도");
+        Debug.Log($"📍 ICC 위치: {currentICC}");
+        Debug.Log($"🏠 휠체어 위치: {transform.position}");
+        Debug.Log($"🧭 휠체어 Y축 회전: {transform.eulerAngles.y:F1}도");
+        
+        if (isRotating && Mathf.Abs(currentTurningRadius) < maxTurningRadius)
+        {
+            Vector3 distanceToICC = currentICC - transform.position;
+            Debug.Log($"📏 ICC까지 거리: {distanceToICC.magnitude:F2}m");
+            Debug.Log($"✅ ICC 축 기반 회전 활성화됨");
+        }
+        else
+        {
+            Debug.Log($"❌ ICC 축 기반 회전 비활성화됨");
+        }
+        
+        Debug.Log("══════════════════════════════════════════════════");
     }
 } 
