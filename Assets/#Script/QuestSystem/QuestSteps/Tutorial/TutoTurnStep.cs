@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using Meta.XR.MRUtilityKit.SceneDecorator;
 using Unity.Mathematics;
 using UnityEngine;
 

@@ -31,6 +31,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5417052206122726634}
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
@@ -81,6 +82,7 @@ MeshRenderer:
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!114 &5417052204936965151
 MonoBehaviour:
+  m_SerializedVersion: 1
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -200,7 +202,6 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5417052206122726637}
-  serializedVersion: 2
   m_LocalRotation: {x: 0.16677329, y: -0.022294158, z: 0.026784908, w: 0.9853793}
   m_LocalPosition: {x: 1.484, y: 1.1327, z: -8.0402}
   m_LocalScale: {x: 2.0153997, y: 2.0154, z: 2.0154002}
@@ -208,6 +209,7 @@ Transform:
   m_Children:
   - {fileID: 5417052204936965145}
   m_Father: {fileID: 0}
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &5417052206122726635
 MeshFilter:
@@ -280,25 +282,21 @@ MonoBehaviour:
   isGrabbable: 1
   CopySettings: {fileID: 0}
   grabType: 0
-  grabPoseType: 0
   handType: 0
   singleHandOnly: 1
+  allowHeldSwapping: 1
   instantGrab: 0
   useGentleGrab: 0
-  maintainGrabOffset: 0
-  parentOnGrab: 1
   heldNoFriction: 1
+  maintainGrabOffset: 0
   ignoreWeight: 0
-  allowHeldSwapping: 1
+  parentOnGrab: 1
   throwPower: 1
   jointBreakForce: 3500
   showAdvancedSettings: 0
   makeChildrenGrabbable: 1
   grabPriorityWeight: 1
   ignoreReleaseTime: 0.5
-  minHeldDrag: 1.5
-  minHeldAngleDrag: 3
-  minHeldMass: 0.1
   maxHeldVelocity: 10
   heldPositionOffset: {x: 0, y: 0, z: 0}
   heldRotationOffset: {x: 0, y: 0, z: 0}
@@ -337,17 +335,9 @@ BoxCollider:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5417052206122726637}
   m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
   m_IsTrigger: 0
-  m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
+  serializedVersion: 2
   m_Size: {x: 0.046297476, y: 0.08907876, z: 0.014}
   m_Center: {x: 0, y: -0.04, z: 0}
 --- !u!54 &5417052206122726639
@@ -357,21 +347,10 @@ Rigidbody:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5417052206122726637}
-  serializedVersion: 4
+  serializedVersion: 2
   m_Mass: 1
   m_Drag: 0
   m_AngularDrag: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
