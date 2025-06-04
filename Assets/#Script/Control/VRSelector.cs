@@ -9,7 +9,7 @@ public class VRSelector : MonoBehaviour
 
     private RaycastHit hit;
     public float selectDistance = 0.8f;
-    public LayerMask selectableLayerMask; // ·¹ÀÌ¾î ¸¶½ºÅ© Ãß°¡
+    public LayerMask selectableLayerMask; // ï¿½ï¿½ï¿½Ì¾ï¿½ ï¿½ï¿½ï¿½ï¿½Å© ï¿½ß°ï¿½
 
     private GameObject selectedObject;
 
@@ -29,27 +29,27 @@ public class VRSelector : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        // ·¹ÀÌÄ³½ºÆ®
+        // ï¿½ï¿½ï¿½ï¿½Ä³ï¿½ï¿½Æ®
         Ray ray = new Ray(rayOrigin.position, rayOrigin.forward);
-        if (Physics.Raycast(ray, out hit, selectDistance, selectableLayerMask)) // Ãæµ¹ÇÑ ¹°Ã¼°¡ ÀÖÀ» °æ¿ì Focus In
+        if (Physics.Raycast(ray, out hit, selectDistance, selectableLayerMask)) // ï¿½æµ¹ï¿½ï¿½ ï¿½ï¿½Ã¼ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ Focus In
         {
             Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.red);
 
-            // »õ·Î¿î ¹°Ã¼°¡ ¼±ÅÃµÇ¾úÀ» °æ¿ì¿¡¸¸ Focus »óÅÂ º¯°æ, µÎ °³ ÀÌ»óÀÇ ¹°Ã¼ Áßº¹ Ã³¸® ¹æÁö
+            // ï¿½ï¿½ï¿½Î¿ï¿½ ï¿½ï¿½Ã¼ï¿½ï¿½ ï¿½ï¿½ï¿½ÃµÇ¾ï¿½ï¿½ï¿½ ï¿½ï¿½ì¿¡ï¿½ï¿½ Focus ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ ï¿½ï¿½ ï¿½Ì»ï¿½ï¿½ï¿½ ï¿½ï¿½Ã¼ ï¿½ßºï¿½ Ã³ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
             if (hit.transform.gameObject != selectedObject)
             {
-                // ÀÌÀü ¼±ÅÃµÈ ¹°Ã¼°¡ ÀÖÀ» °æ¿ì Focus Out Ã³¸®
+                // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ãµï¿½ ï¿½ï¿½Ã¼ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ Focus Out Ã³ï¿½ï¿½
                 if (selectedObject != null)
                 {
                     selectedObject.GetComponent<SelectableObject>().OnFocusedOut();
                 }
 
-                // »õ·Î¿î ¹°Ã¼ ¼±ÅÃ
+                // ï¿½ï¿½ï¿½Î¿ï¿½ ï¿½ï¿½Ã¼ ï¿½ï¿½ï¿½ï¿½
                 selectedObject = hit.transform.gameObject;
                 selectedObject.GetComponent<SelectableObject>().OnFocusedIn();
             }
         }
-        else //Ãæµ¹ÇÑ ¹°Ã¼°¡ ¾ø´Â °æ¿ì Focus Out
+        else //ï¿½æµ¹ï¿½ï¿½ ï¿½ï¿½Ã¼ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ Focus Out
         {
             if (selectedObject != null)
             {
@@ -58,7 +58,7 @@ public class VRSelector : MonoBehaviour
             }
         }
 
-        if (isPressed) //ÄÁÆ®·Ñ·¯ A¹öÆ° Å¬¸¯
+        if (isPressed) //ï¿½ï¿½Æ®ï¿½Ñ·ï¿½ Aï¿½ï¿½Æ° Å¬ï¿½ï¿½
         {
             if (selectedObject != null) {
                 selectedObject.GetComponent<SelectableObject>().OnSelected();
@@ -71,7 +71,7 @@ public class VRSelector : MonoBehaviour
 
     void OnButtonPressed(ControllerButton button)
     {
-        if(button == ControllerButton.PRIMARY)
+        if(button == ControllerButton.A)
         {
             isPressed = true;
             Update();

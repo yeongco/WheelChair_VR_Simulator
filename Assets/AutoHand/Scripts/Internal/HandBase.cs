@@ -463,7 +463,7 @@ namespace Autohand {
                 foreach(var col in obj1.GetComponents<Collider>())
                     handColliders.Add(col);
 
-                for(int i = 0; i < obj1.childCount; i++) {
+                for(int i = 0; i < obj1.childCount-1; i++) {
                     AddHandCol(obj1.GetChild(i));
                 }
             }

@@ -1,390 +1,242 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// 가상 경사로 시스템
-/// 물리적 경사로 없이도 휠체어에 방향성 있는 힘을 적용할 수 있는 시스템
-/// </summary>
-public class VirtualSlope : MonoBehaviour
+public class WheelchairController : MonoBehaviour
 {
-    [Header("🏔️ 가상 경사로 설정")]
-    [SerializeField] private Vector3 slopeDirection = Vector3.forward;
-    [SerializeField] private float slopeForce = 2f;
-    [SerializeField] private bool normalizeDirection = true;
-    [SerializeField] private bool ignoreYAxis = true;
-    
-    [Header("🎯 적용 범위")]
-    [SerializeField] private LayerMask wheelchairLayer = -1;
-    [SerializeField] private bool requireWheelchairController = true;
-    
-    [Header("🔍 디버그 설정")]
-    [SerializeField] private bool enableDebugLog = true;
-    [SerializeField] private bool showDirectionGizmos = true;
-    [SerializeField] private float gizmoLength = 2f;
-    [SerializeField] private Color gizmoColor = Color.red;
-    
-    // 현재 영향받는 휠체어들
-    private HashSet<WheelchairController> affectedWheelchairs = new HashSet<WheelchairController>();
-    
-    // 내부 계산용 변수들
-    private Vector3 normalizedSlopeDirection;
-    private Collider triggerCollider;
-    
+    [Header("🔋 초전도체 부양 시스템")]
+    [Tooltip("부양 높이를 지면으로부터 이만큼 유지합니다.")]
+    public float hoverHeight = 0.1f;
+
+    [Header("🎯 4점 지면 감지 시스템")]
+    [Tooltip("부양을 위해 레이캐스트할 총 4개 지점")]
+    public Transform[] groundDetectionPoints = new Transform[4];
+    [Tooltip("지면 감지용 레이의 최대 길이")]
+    public float groundCheckDistance = 2f;
+    [Tooltip("지면으로 인식할 레이어")]
+    public LayerMask groundLayer = 1;
+    [Tooltip("감지 지점 만들 때 로컬 Y 오프셋 (기본값 0.05)")]
+    public float contactPointOffset = 0.05f;
+
+    [Header("🎛️ 물리 설정")]
+    [Tooltip("부양할 Rigidbody")]
+    public Rigidbody chairRigidbody;
+    [Tooltip("휠체어 질량 (Inspector에서 직접 지정)")]
+    public float chairMass = 80f;
+
+    // 내부 계산용: “각 지점” 스프링 계수와 댐핑 계수
+    private float k_perPoint;    // 스프링 계수
+    private float c_perPoint;    // 댐핑 계수
+
+    // 내부용: 지면 감지 데이터
+    private float[] groundDistances = new float[4];
+    private Vector3[] groundPoints = new Vector3[4];
+    private Vector3[] groundNormals = new Vector3[4];
+    private bool[] groundDetected = new bool[4];
+
     void Start()
     {
-        InitializeVirtualSlope();
+        // Rigidbody 초기화
+        if (chairRigidbody == null)
+            chairRigidbody = GetComponent<Rigidbody>();
+
+        // mass가 바뀌어도 항상 반영되도록 Rigidbody에 설정
+        chairRigidbody.mass = chairMass;
+        chairRigidbody.useGravity = false;
+        chairRigidbody.drag = 0.5f;        // 예시로 약간의 공기 저항
+        chairRigidbody.angularDrag = 10f;  // 약간의 회전 저항
+        chairRigidbody.centerOfMass = new Vector3(0, -0.2f, 0);
+        chairRigidbody.maxAngularVelocity = 50f;
+
+        // “각 지점” 스프링/댐핑 계수 계산
+        // g = Physics.gravity.magnitude (예: 9.81)
+        float g = Physics.gravity.magnitude;
+
+        // 1) 스프링 계수:
+        //    k_total = (m * g) / hoverHeight   → 네 지점으로 분산 → k_perPoint = k_total / 4
+        //    즉 k_perPoint = (m * g) / (4 * hoverHeight)
+        k_perPoint = (chairMass * g) / (4f * hoverHeight);
+
+        // 2) 임계 댐핑 계수(critical damping) for each point:
+        //    m_eff = m / 4  (각 스프링이 담당하는 유효 질량)
+        //    c_perPoint = 2 * sqrt(k_perPoint * m_eff)
+        float m_eff = chairMass / 4f;
+        c_perPoint = 2f * Mathf.Sqrt(k_perPoint * m_eff);
+
+        // 지면 감지 포인트가 할당되어 있지 않으면 자동 생성
+        if (groundDetectionPoints[0] == null)
+            CreateGroundDetectionPoints();
     }
-    
-    void InitializeVirtualSlope()
+
+    void FixedUpdate()
     {
-        // 트리거 콜라이더 확인
-        triggerCollider = GetComponent<Collider>();
-        if (triggerCollider == null)
-        {
-            Debug.LogError($"⚠️ {gameObject.name}: VirtualSlope에 Collider가 없습니다! Trigger Collider를 추가해주세요.");
-            return;
-        }
-        
-        if (!triggerCollider.isTrigger)
-        {
-            triggerCollider.isTrigger = true;
-            Debug.LogWarning($"⚠️ {gameObject.name}: Collider가 Trigger로 설정되지 않아 자동으로 설정했습니다.");
-        }
-        
-        // 방향 정규화
-        UpdateSlopeDirection();
-        
-        if (enableDebugLog)
-        {
-            Debug.Log($"🏔️ 가상 경사로 '{gameObject.name}' 초기화 완료");
-            Debug.Log($"    방향: {normalizedSlopeDirection}, 힘: {slopeForce}");
-        }
+        PerformGroundDetection();
+        ApplySuperconductorHover();
     }
-    
-    void UpdateSlopeDirection()
-    {
-        Vector3 direction = slopeDirection;
-        
-        // Y축 무시 옵션
-        if (ignoreYAxis)
-        {
-            direction.y = 0f;
-        }
-        
-        // 방향 정규화
-        if (normalizeDirection && direction.magnitude > 0.001f)
-        {
-            normalizedSlopeDirection = direction.normalized;
-        }
-        else
-        {
-            normalizedSlopeDirection = direction;
-        }
-    }
-    
-    void OnTriggerEnter(Collider other)
-    {
-        // 레이어 체크
-        if (!IsInLayerMask(other.gameObject.layer, wheelchairLayer))
-            return;
-            
-        // 휠체어 컨트롤러 확인
-        WheelchairController wheelchair = other.GetComponent<WheelchairController>();
-        if (wheelchair == null)
-        {
-            if (requireWheelchairController)
-                return;
-                
-            // 부모에서 찾아보기
-            wheelchair = other.GetComponentInParent<WheelchairController>();
-            if (wheelchair == null)
-                return;
-        }
-        
-        // 휠체어를 영향 목록에 추가
-        if (affectedWheelchairs.Add(wheelchair))
-        {
-            wheelchair.AddVirtualSlope(this);
-            
-            if (enableDebugLog)
-            {
-                Debug.Log($"🏔️ 휠체어 '{wheelchair.gameObject.name}'이 가상 경사로 '{gameObject.name}'에 진입");
-            }
-        }
-    }
-    
-    void OnTriggerExit(Collider other)
-    {
-        // 레이어 체크
-        if (!IsInLayerMask(other.gameObject.layer, wheelchairLayer))
-            return;
-            
-        // 휠체어 컨트롤러 확인
-        WheelchairController wheelchair = other.GetComponent<WheelchairController>();
-        if (wheelchair == null)
-        {
-            wheelchair = other.GetComponentInParent<WheelchairController>();
-            if (wheelchair == null)
-                return;
-        }
-        
-        // 휠체어를 영향 목록에서 제거
-        if (affectedWheelchairs.Remove(wheelchair))
-        {
-            wheelchair.RemoveVirtualSlope(this);
-            
-            if (enableDebugLog)
-            {
-                Debug.Log($"🏔️ 휠체어 '{wheelchair.gameObject.name}'이 가상 경사로 '{gameObject.name}'에서 퇴장");
-            }
-        }
-    }
-    
+
     /// <summary>
-    /// 특정 휠체어에 대한 경사로 효과 계산
+    /// 4개 지점에서 레이캐스트를 쏘아 지면을 감지합니다.
     /// </summary>
-    /// <param name="wheelchairTransform">휠체어 Transform</param>
-    /// <returns>계산된 경사로 효과 (Z 변화량)</returns>
-    public float CalculateSlopeEffect(Transform wheelchairTransform)
+    void PerformGroundDetection()
     {
-        if (wheelchairTransform == null || normalizedSlopeDirection.magnitude < 0.001f)
+        for (int i = 0; i < 4; i++)
+        {
+            if (groundDetectionPoints[i] == null) continue;
+
+            Vector3 rayStart = groundDetectionPoints[i].position;
+            RaycastHit hit;
+            if (Physics.Raycast(rayStart, Vector3.down, out hit, groundCheckDistance, groundLayer))
+            {
+                groundDistances[i] = hit.distance;
+                groundPoints[i] = hit.point;
+                groundNormals[i] = hit.normal;
+                groundDetected[i] = true;
+            }
+            else
+            {
+                groundDetected[i] = false;
+                groundDistances[i] = groundCheckDistance;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 지면으로부터 hoverHeight만큼 떠 있도록 네 지점에 힘을 계산해서 가합니다.
+    /// 각 지점 스프링 계수와 댐핑 계수는 mass 기반 공식으로 미리 계산해 두었습니다.
+    /// </summary>
+    void ApplySuperconductorHover()
+    {
+        bool anyGround = false;
+        float sumDistances = 0f;
+        int count = 0;
+
+        // 유효 지면 지점 수집
+        for (int i = 0; i < 4; i++)
+        {
+            if (!groundDetected[i]) continue;
+            anyGround = true;
+            sumDistances += groundDistances[i];
+            count++;
+        }
+
+        // 지면 감지가 하나도 안 된 경우: 중력만 적용
+        if (!anyGround)
+        {
+            Vector3 gravity = Vector3.down * chairMass * Physics.gravity.magnitude;
+            chairRigidbody.AddForce(gravity, ForceMode.Force);
+            return;
+        }
+
+        // 평균 거리 (부양 영향력 산정을 위해 사용 가능)
+        float avgDistance = (count > 0) ? (sumDistances / count) : groundCheckDistance;
+
+        // iteration마다 네 지점에 스프링+댐핑 힘 적용
+        // hoverInfluence를 곱해서, 너무 멀리 떨어지면 점점 전혀 힘을 주지 않도록
+        float hoverInfluence = CalculateHoverInfluence(avgDistance);
+
+        for (int i = 0; i < 4; i++)
+        {
+            if (!groundDetected[i]) continue;
+
+            Vector3 pointPos = groundDetectionPoints[i].position;
+            float actualGroundY = groundPoints[i].y;
+
+            // “지면으로부터 이 지점까지의 현재 높이”
+            float currentHeight = pointPos.y - actualGroundY;
+            // 목표 높이는 hoverHeight
+            float heightError = (actualGroundY + hoverHeight) - pointPos.y;
+
+            // 스프링 힘 = k_perPoint * heightError
+            float springForce = k_perPoint * heightError;
+
+            // 댐핑 힘 = - c_perPoint * v_y
+            float verticalVel = Vector3.Dot(chairRigidbody.velocity, Vector3.up);
+            float damperForce = -c_perPoint * verticalVel;
+
+            // 네 지점을 합친 총 힘이 m·g를 상쇄하려면,  
+            // 각 지점에 (springForce + damperForce) / 4 대신
+            // 이미 k_perPoint, c_perPoint 가 4분할을 반영해 두었으므로 곱해서 사용
+            Vector3 totalForce = Vector3.up * (springForce + damperForce) * hoverInfluence * 1f;
+
+            chairRigidbody.AddForceAtPosition(totalForce, pointPos, ForceMode.Force);
+        }
+
+        // hoverInfluence가 1보다 작으면 일부 중력 적용
+        float gravityPortion = 1f - hoverInfluence;
+        if (gravityPortion > 0f)
+        {
+            Vector3 partialGravity = Vector3.down * chairMass * Physics.gravity.magnitude * gravityPortion;
+            chairRigidbody.AddForce(partialGravity, ForceMode.Force);
+        }
+    }
+
+    /// <summary>
+    /// 평균 지면과의 거리에 따라 부양 영향력(0~1)을 보정합니다.
+    /// (distanceToGround <= hoverHeight 이면 1.0,  
+    ///  hoverHeight~hoverHeight+1 범위에서는 서서히 0으로 감소,  
+    ///  hoverHeight+1 이상이면 0)
+    /// </summary>
+    float CalculateHoverInfluence(float distanceToGround)
+    {
+        if (distanceToGround <= hoverHeight)
+            return 1f;
+
+        float transitionRange = 1f; 
+        float excess = distanceToGround - hoverHeight;
+        if (excess >= transitionRange)
             return 0f;
-        
-        // 휠체어의 전진 방향 (글로벌)
-        Vector3 wheelchairForward = wheelchairTransform.forward;
-        
-        // Y축 무시
-        if (ignoreYAxis)
-        {
-            wheelchairForward.y = 0f;
-            wheelchairForward = wheelchairForward.normalized;
-        }
-        
-        // 내적 계산 (방향 일치도: -1 ~ 1)
-        float directionDot = Vector3.Dot(wheelchairForward, normalizedSlopeDirection);
-        
-        // 경사로 효과 계산 (방향이 일치할 때 최대, 수직일 때 0)
-        float slopeEffect = directionDot * slopeForce;
-        
-        return slopeEffect;
+
+        float t = excess / transitionRange;
+        return Mathf.Cos(t * Mathf.PI * 0.5f);
     }
-    
+
     /// <summary>
-    /// 레이어 마스크 체크
+    /// 주변에 4개의 빈 오브젝트(Transform)를 생성하여 지면 감지 포인트로 사용합니다.
     /// </summary>
-    private bool IsInLayerMask(int layer, LayerMask layerMask)
+    void CreateGroundDetectionPoints()
     {
-        return (layerMask.value & (1 << layer)) != 0;
-    }
-    
-    // ========== 공개 API ==========
-    
-    /// <summary>
-    /// 경사로 방향 설정
-    /// </summary>
-    public void SetSlopeDirection(Vector3 direction)
-    {
-        slopeDirection = direction;
-        UpdateSlopeDirection();
-        
-        if (enableDebugLog)
+        float halfWidth = 0.4f;
+        float halfLength = 0.6f;
+        Vector3[] localPositions = new Vector3[4]
         {
-            Debug.Log($"🏔️ '{gameObject.name}' 경사로 방향 설정: {normalizedSlopeDirection}");
+            new Vector3(-halfWidth, contactPointOffset,  halfLength),
+            new Vector3( halfWidth, contactPointOffset,  halfLength),
+            new Vector3(-halfWidth, contactPointOffset, -halfLength),
+            new Vector3( halfWidth, contactPointOffset, -halfLength)
+        };
+
+        for (int i = 0; i < 4; i++)
+        {
+            GameObject go = new GameObject($"GroundPoint_{i}");
+            go.transform.SetParent(transform);
+            go.transform.localPosition = localPositions[i];
+            groundDetectionPoints[i] = go.transform;
         }
     }
-    
+
     /// <summary>
-    /// 경사로 힘 설정
+    /// 기울어진 지면 위에 있는지 확인하는 유틸 함수 (추후 slope 로직 작성용).
     /// </summary>
-    public void SetSlopeForce(float force)
+    /// <param name="slopeThreshold">기울기 판정 임계값(도)</param>
+    /// <param name="averageNormal">검출된 지면 법선의 평균</param>
+    /// <returns>임계값 이상 기울어졌으면 true</returns>
+    public bool IsOnSlope(float slopeThreshold, out Vector3 averageNormal)
     {
-        slopeForce = force;
-        
-        if (enableDebugLog)
+        averageNormal = Vector3.zero;
+        int valid = 0;
+
+        for (int i = 0; i < 4; i++)
         {
-            Debug.Log($"🏔️ '{gameObject.name}' 경사로 힘 설정: {slopeForce}");
-        }
-    }
-    
-    /// <summary>
-    /// 현재 영향받는 휠체어 수
-    /// </summary>
-    public int GetAffectedWheelchairCount()
-    {
-        return affectedWheelchairs.Count;
-    }
-    
-    /// <summary>
-    /// 현재 설정 정보 반환
-    /// </summary>
-    public (Vector3 direction, float force, int affectedCount) GetSlopeInfo()
-    {
-        return (normalizedSlopeDirection, slopeForce, affectedWheelchairs.Count);
-    }
-    
-    /// <summary>
-    /// 경사로 상태 디버그 출력
-    /// </summary>
-    [ContextMenu("Debug Slope Info")]
-    public void DebugSlopeInfo()
-    {
-        Debug.Log("═══════════════════════════════════════");
-        Debug.Log($"🏔️ 가상 경사로 '{gameObject.name}' 정보");
-        Debug.Log("═══════════════════════════════════════");
-        Debug.Log($"📐 원본 방향: {slopeDirection}");
-        Debug.Log($"🎯 정규화된 방향: {normalizedSlopeDirection}");
-        Debug.Log($"⚡ 경사로 힘: {slopeForce}");
-        Debug.Log($"🚗 영향받는 휠체어 수: {affectedWheelchairs.Count}");
-        Debug.Log($"🔧 Y축 무시: {ignoreYAxis}, 방향 정규화: {normalizeDirection}");
-        
-        if (affectedWheelchairs.Count > 0)
-        {
-            Debug.Log("📋 영향받는 휠체어들:");
-            foreach (var wheelchair in affectedWheelchairs)
+            if (groundDetected[i])
             {
-                if (wheelchair != null)
-                {
-                    float effect = CalculateSlopeEffect(wheelchair.transform);
-                    Vector3 wheelchairForward = wheelchair.transform.forward;
-                    if (ignoreYAxis) wheelchairForward.y = 0f;
-                    float dot = Vector3.Dot(wheelchairForward.normalized, normalizedSlopeDirection);
-                    
-                    Debug.Log($"  • {wheelchair.gameObject.name}: 효과 {effect:F2}, 방향 일치도 {dot:F2}");
-                }
+                averageNormal += groundNormals[i];
+                valid++;
             }
         }
-        Debug.Log("═══════════════════════════════════════");
+
+        if (valid == 0)
+            return false;
+
+        averageNormal = (averageNormal / valid).normalized;
+        float angle = Vector3.Angle(averageNormal, Vector3.up);
+        return angle > slopeThreshold;
     }
-    
-    /// <summary>
-    /// 모든 휠체어에 대한 효과 즉시 테스트
-    /// </summary>
-    [ContextMenu("Test Slope Effects")]
-    public void TestSlopeEffects()
-    {
-        if (affectedWheelchairs.Count == 0)
-        {
-            Debug.Log($"⚠️ '{gameObject.name}': 영향받는 휠체어가 없습니다.");
-            return;
-        }
-        
-        Debug.Log($"🧪 '{gameObject.name}' 경사로 효과 테스트:");
-        foreach (var wheelchair in affectedWheelchairs)
-        {
-            if (wheelchair != null)
-            {
-                float effect = CalculateSlopeEffect(wheelchair.transform);
-                wheelchair.ApplyVirtualSlopeForce(effect);
-                Debug.Log($"  📤 {wheelchair.gameObject.name}에 효과 {effect:F2} 적용");
-            }
-        }
-    }
-    
-    // ========== 디버그 및 기즈모 ==========
-    
-    void OnDrawGizmos()
-    {
-        if (!showDirectionGizmos) return;
-        
-        // 방향 업데이트 (에디터에서 실시간 반영)
-        UpdateSlopeDirection();
-        
-        // 경사로 방향 화살표 (빨간색)
-        Gizmos.color = gizmoColor;
-        Vector3 startPos = transform.position;
-        Vector3 endPos = startPos + normalizedSlopeDirection * gizmoLength;
-        
-        // 메인 화살표
-        Gizmos.DrawLine(startPos, endPos);
-        
-        // 화살표 머리
-        if (normalizedSlopeDirection.magnitude > 0.001f)
-        {
-            Vector3 arrowHead1 = endPos - (normalizedSlopeDirection + Vector3.right * 0.3f).normalized * (gizmoLength * 0.2f);
-            Vector3 arrowHead2 = endPos - (normalizedSlopeDirection + Vector3.left * 0.3f).normalized * (gizmoLength * 0.2f);
-            Vector3 arrowHead3 = endPos - (normalizedSlopeDirection + Vector3.forward * 0.3f).normalized * (gizmoLength * 0.2f);
-            Vector3 arrowHead4 = endPos - (normalizedSlopeDirection + Vector3.back * 0.3f).normalized * (gizmoLength * 0.2f);
-            
-            Gizmos.DrawLine(endPos, arrowHead1);
-            Gizmos.DrawLine(endPos, arrowHead2);
-            Gizmos.DrawLine(endPos, arrowHead3);
-            Gizmos.DrawLine(endPos, arrowHead4);
-        }
-        
-        // 힘 크기 표시 (구 크기로)
-        Gizmos.color = new Color(gizmoColor.r, gizmoColor.g, gizmoColor.b, 0.3f);
-        float sphereSize = Mathf.Clamp(slopeForce * 0.1f, 0.1f, 1f);
-        Gizmos.DrawSphere(startPos, sphereSize);
-        
-        // 트리거 영역 표시 (와이어프레임)
-        if (triggerCollider != null)
-        {
-            Gizmos.color = new Color(gizmoColor.r, gizmoColor.g, gizmoColor.b, 0.5f);
-            
-            if (triggerCollider is BoxCollider box)
-            {
-                Gizmos.matrix = transform.localToWorldMatrix;
-                Gizmos.DrawWireCube(box.center, box.size);
-                Gizmos.matrix = Matrix4x4.identity;
-            }
-            else if (triggerCollider is SphereCollider sphere)
-            {
-                Gizmos.matrix = transform.localToWorldMatrix;
-                Gizmos.DrawWireSphere(sphere.center, sphere.radius);
-                Gizmos.matrix = Matrix4x4.identity;
-            }
-        }
-    }
-    
-    void OnDrawGizmosSelected()
-    {
-        if (!showDirectionGizmos) return;
-        
-        // 선택되었을 때 더 자세한 정보 표시
-        Gizmos.color = Color.yellow;
-        
-        // 영향받는 휠체어들과의 연결선
-        foreach (var wheelchair in affectedWheelchairs)
-        {
-            if (wheelchair != null)
-            {
-                Gizmos.DrawLine(transform.position, wheelchair.transform.position);
-                
-                // 휠체어의 방향도 표시
-                Vector3 wheelchairForward = wheelchair.transform.forward;
-                if (ignoreYAxis) wheelchairForward.y = 0f;
-                
-                Gizmos.color = Color.cyan;
-                Gizmos.DrawRay(wheelchair.transform.position, wheelchairForward.normalized * (gizmoLength * 0.5f));
-                Gizmos.color = Color.yellow;
-            }
-        }
-    }
-    
-    // ========== 에디터 검증 ==========
-    
-    void OnValidate()
-    {
-        // 설정값 검증
-        slopeForce = Mathf.Max(0f, slopeForce);
-        gizmoLength = Mathf.Max(0.1f, gizmoLength);
-        
-        // 실행 중일 때만 방향 업데이트
-        if (Application.isPlaying)
-        {
-            UpdateSlopeDirection();
-        }
-        
-        // 경고 메시지
-        if (slopeForce > 10f)
-        {
-            Debug.LogWarning($"⚠️ '{gameObject.name}': 경사로 힘이 너무 높습니다 ({slopeForce}). 권장값: 0~5");
-        }
-        
-        if (slopeDirection.magnitude < 0.001f)
-        {
-            Debug.LogWarning($"⚠️ '{gameObject.name}': 경사로 방향이 설정되지 않았습니다.");
-        }
-    }
-} 
+}

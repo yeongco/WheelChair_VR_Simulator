@@ -50,7 +50,7 @@ public class WaitEnterA : QuestStep
         if(waitTimer) return;
 
         // Primary 버튼이 눌렸을 때 퀘스트 스텝 완료
-        if(button == ControllerButton.PRIMARY)
+        if(button == ControllerButton.A)
         {
             Debug.Log("Primary 버튼 눌림");
             FinishQuestStep();
