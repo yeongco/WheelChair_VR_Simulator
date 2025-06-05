@@ -17,7 +17,7 @@ public class MoveStep : QuestStep
     private void OnTriggerEnter(Collider other)
     {
         // 트리거에 들어온 오브젝트가 플레이어인지 확인
-        if (other.CompareTag("Player"))
+        if (other.gameObject == player)
         {
             Debug.Log("플레이어 진입");
             FinishQuestStep();

@@ -7,6 +7,7 @@ public class InteractionObject : MonoBehaviour
 {
     public AudioClip interactSound;
     private AudioSource AudioSource;
+    bool _isInteract = false;
 
 
     private void Awake()
@@ -15,10 +16,11 @@ public class InteractionObject : MonoBehaviour
     }
     public void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.layer == LayerMask.NameToLayer("Hand"))
+        if (other.gameObject.layer == LayerMask.NameToLayer("Hand") && !_isInteract)
         {
             EventsManager.instance.gameEvents.ButtonClicked(true);
             AudioSource.PlayOneShot(interactSound);
+            _isInteract = true;
             //Debug.Log("clicked");
         }
         

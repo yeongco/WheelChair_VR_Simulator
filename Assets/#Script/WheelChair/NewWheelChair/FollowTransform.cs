@@ -9,6 +9,8 @@ public class FollowTransform : MonoBehaviour
     [Tooltip("Transform of the rigidbody to follow.")]
     public Transform target;
     Vector3 offset;
+    [SerializeField]
+    private bool _isRotate = true;
 
     void Start()
     {
@@ -19,7 +21,7 @@ public class FollowTransform : MonoBehaviour
     {
         Vector3 rotatedOffset = target.localRotation * offset;
         transform.localPosition = target.localPosition + rotatedOffset;
-
-        transform.rotation = target.rotation;
+        if(_isRotate)
+            transform.rotation = target.rotation;
     }
 }

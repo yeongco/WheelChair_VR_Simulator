@@ -16,7 +16,7 @@ public class VRWC_MeshAnimator : MonoBehaviour
 
     void Update()
     {
-        if (frame.velocity.magnitude > 0.05f)
+        if (frame.velocity.magnitude > 0.02f)
         {
             RotateWheels();
         }
