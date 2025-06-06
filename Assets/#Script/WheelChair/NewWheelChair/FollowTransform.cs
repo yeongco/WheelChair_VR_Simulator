@@ -23,5 +23,9 @@ public class FollowTransform : MonoBehaviour
         transform.localPosition = target.localPosition + rotatedOffset;
         if(_isRotate)
             transform.rotation = target.rotation;
+        else
+        {
+            transform.rotation = Quaternion.Euler(0, target.rotation.eulerAngles.y, 0);
+        }
     }
 }
