@@ -57,6 +57,13 @@ namespace Obi.Samples
             return closest;
         }
 
+        // TanglePeg가 Grabbable로 잡혀있는지 확인하는 메서드
+        private bool IsPegBeingGrabbed(TangledPeg peg)
+        {
+            var grabbable = peg.GetComponent<Autohand.Grabbable>();
+            return grabbable != null && grabbable.IsHeld();
+        }
+
         private void Update()
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -69,14 +76,25 @@ namespace Obi.Samples
                     // if the ray hit a peg, store it as the selected peg and lift it off from its current slot.
                     if (hit.transform.TryGetComponent(out TangledPeg peg) && peg.currentSlot != null)
                     {
-                        selectedPeg = peg;
-                        selectedPeg.UndockFromCurrentSlot();
+                        // Grabbable로 잡혀있지 않을 때만 마우스 컨트롤 허용
+                        if (!IsPegBeingGrabbed(peg))
+                        {
+                            selectedPeg = peg;
+                            selectedPeg.UndockFromCurrentSlot();
+                        }
                     }
                 }
             }
 
             if (selectedPeg != null)
             {
+                // 선택된 Peg가 Grabbable로 잡혔다면 마우스 컨트롤 해제
+                if (IsPegBeingGrabbed(selectedPeg))
+                {
+                    selectedPeg = null;
+                    return;
+                }
+
                 // Make selected peg follow the mouse cursor:
                 if (floor.Raycast(ray, out float enter))
                     selectedPeg.MoveTowards(ray.GetPoint(enter) + Vector3.up * pegHoverHeight);
