@@ -7,6 +7,11 @@ namespace Obi.Samples
         public TangledPeg currentPeg;
         public Color tintColor;
 
+        /// <summary>
+        /// TangledPeg이 이 슬롯에 붙어있는지 확인하는 변수
+        /// </summary>
+        public bool HasPegAttached => currentPeg != null;
+
         private Material instance;
         private Color normalColor;
 

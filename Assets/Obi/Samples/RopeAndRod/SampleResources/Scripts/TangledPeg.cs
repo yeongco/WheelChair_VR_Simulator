@@ -300,10 +300,30 @@ namespace Obi.Samples
                 currentSlot = slot;
                 currentSlot.currentPeg = this;
                 transform.position = currentSlot.transform.position;
+                
+                // 특정 슬롯에 도킹될 때 회전 적용
+                ApplySlotSpecificRotation(slot);
+                
                 rb.isKinematic = true;
                 if (orb != null)
                     orb.kinematicForParticles = false;
             }
+        }
+
+        // 특정 슬롯에 따른 회전 적용
+        private void ApplySlotSpecificRotation(TangledPegSlot slot)
+        {
+            // 슬롯 이름을 기준으로 체크 (TangledPegSlot (4))
+            if (slot.name.Contains("(4)"))
+            {
+                // Z축 270도 회전 적용
+                transform.rotation = Quaternion.Euler(0, 0, 270);
+                Debug.Log($"Applied 270° Z rotation for slot: {slot.name}");
+            }
+            else {
+                transform.rotation = Quaternion.Euler(0, 0, 90);
+            }
+            // 다른 슬롯의 경우 기존 회전값 유지 (아무것도 하지 않음)
         }
 
         void OnDestroy()
