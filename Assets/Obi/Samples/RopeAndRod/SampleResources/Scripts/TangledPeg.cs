@@ -63,27 +63,24 @@ namespace Obi.Samples
         {
             if (grabbable != null)
             {
-                // 즉시 잡기 비활성화 (붙지 않게)
+                // TanglePegGrabbableEnhancer가 있다면 그쪽에서 설정을 처리하도록 함
+                var enhancer = GetComponent<TanglePegGrabbableEnhancer>();
+                if (enhancer != null)
+                {
+                    // Enhancer가 모든 설정을 처리하므로 여기서는 기본 설정만
+                    Debug.Log("TanglePegGrabbableEnhancer detected, using its settings");
+                    return;
+                }
+                
+                // Enhancer가 없을 때만 기본 설정 적용
                 grabbable.instantGrab = false;
-                
-                // 부드러운 잡기 활성화
                 grabbable.useGentleGrab = true;
-                
-                // 오프셋 유지 활성화 (잡은 위치 그대로 유지)
-                grabbable.maintainGrabOffset = true;
-                
-                // 부모 설정 비활성화 (물리 기반 따라오기 사용)
+                grabbable.maintainGrabOffset = false;
                 grabbable.parentOnGrab = false;
-                
-                // 던지기 파워 조정 (더 부드럽게)
-                grabbable.throwPower = 0.3f; // 0.5에서 0.3으로 감소
-                
-                // 조인트 브레이크 힘 증가 (안정성을 위해)
-                grabbable.jointBreakForce = 2000f; // 1000에서 2000으로 증가
-                
-                // 최소 드래그 설정 (더 안정적으로)
-                grabbable.minHeldDrag = 8f; // 5에서 8로 증가
-                grabbable.minHeldAngleDrag = 8f; // 5에서 8로 증가
+                grabbable.throwPower = 0.2f;
+                grabbable.jointBreakForce = 3000f;
+                grabbable.minHeldDrag = 6f;
+                grabbable.minHeldAngleDrag = 6f;
             }
         }
 
@@ -103,16 +100,16 @@ namespace Obi.Samples
                         transform.SetParent(null, true);
                     }
                     
-                    // 과도한 회전 방지
-                    if (rb.angularVelocity.magnitude > 10f)
+                    // 과도한 회전 방지 (더 여유롭게)
+                    if (rb.angularVelocity.magnitude > 15f)
                     {
-                        rb.angularVelocity = rb.angularVelocity.normalized * 10f;
+                        rb.angularVelocity = rb.angularVelocity.normalized * 15f;
                     }
                     
-                    // 과도한 속도 방지
-                    if (rb.velocity.magnitude > 8f)
+                    // 과도한 속도 방지 (더 여유롭게)
+                    if (rb.velocity.magnitude > 12f)
                     {
-                        rb.velocity = rb.velocity.normalized * 8f;
+                        rb.velocity = rb.velocity.normalized * 12f;
                     }
                 }
             }
