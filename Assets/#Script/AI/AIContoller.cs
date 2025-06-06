@@ -43,10 +43,14 @@ public class AIContoller : MonoBehaviour
     private NavMeshAgent agent;
     private Animator animator;
     
+    // Rig 제어를 위한 참조
+    private AILookAtPlayer lookAtPlayer;
+    
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
+        lookAtPlayer = GetComponent<AILookAtPlayer>();
     }
     private void Start()
     {
@@ -153,5 +157,30 @@ public class AIContoller : MonoBehaviour
         {
             animator.SetBool("wall", true);
         }
+    }
+    
+    // 목 회전에 영향을 주는 애니메이션 파라미터들을 비활성화
+    void DisableNeckAnimations()
+    {
+        // 만약 애니메이션에 LookAt이나 HeadTurn 같은 파라미터가 있다면 비활성화
+        if (HasParameter("LookAt"))
+            animator.SetBool("LookAt", false);
+        if (HasParameter("HeadTurn"))
+            animator.SetFloat("HeadTurn", 0f);
+        if (HasParameter("NeckRotation"))
+            animator.SetFloat("NeckRotation", 0f);
+            
+        // 필요하다면 여기에 다른 목/머리 관련 파라미터들 추가
+    }
+    
+    // 애니메이터에 특정 파라미터가 있는지 확인하는 헬퍼 함수
+    bool HasParameter(string paramName)
+    {
+        foreach (AnimatorControllerParameter param in animator.parameters)
+        {
+            if (param.name == paramName)
+                return true;
+        }
+        return false;
     }
 }
