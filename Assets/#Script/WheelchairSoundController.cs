@@ -13,14 +13,14 @@ public class WheelchairSoundController : MonoBehaviour
     [SerializeField] private float maxPitch = 1.5f;       // 최대 피치
     [SerializeField] private float volumeFadeSpeed = 2f;  // 볼륨 페이드 속도
     
-    private Rigidbody wheelchairBody;
+    private Vector3 previousPosition;
     private float currentVolume = 0f;
     private bool isMoving = false;
     
     void Start()
     {
-        // 휠체어 본체의 Rigidbody 가져오기
-        wheelchairBody = GetComponent<Rigidbody>();
+        // 초기 위치 저장
+        previousPosition = transform.position;
         
         // AudioSource 설정
         if (wheelchairSound == null)
@@ -38,11 +38,14 @@ public class WheelchairSoundController : MonoBehaviour
     
     void Update()
     {
-        if (wheelchairBody == null) return;
+        // 현재 위치에서 Y축 제외
+        Vector3 currentPosition = transform.position;
+        Vector3 previousHorizontalPos = new Vector3(previousPosition.x, 0, previousPosition.z);
+        Vector3 currentHorizontalPos = new Vector3(currentPosition.x, 0, currentPosition.z);
         
-        // 현재 속도 계산 (Y축 속도 제외)
-        Vector3 horizontalVelocity = new Vector3(wheelchairBody.velocity.x, 0, wheelchairBody.velocity.z);
-        float currentSpeed = horizontalVelocity.magnitude;
+        // 위치 변화로 속도 계산
+        Vector3 positionDelta = currentHorizontalPos - previousHorizontalPos;
+        float currentSpeed = positionDelta.magnitude / Time.deltaTime;
         
         // 속도에 따른 피치 계산
         float speedRatio = Mathf.Clamp01((currentSpeed - minSpeed) / (maxSpeed - minSpeed));
@@ -56,6 +59,9 @@ public class WheelchairSoundController : MonoBehaviour
         
         // 오디오 소스 업데이트
         UpdateAudioSource(currentSpeed, targetPitch, currentVolume);
+        
+        // 현재 위치를 이전 위치로 저장
+        previousPosition = currentPosition;
     }
     
     void UpdateAudioSource(float currentSpeed, float targetPitch, float targetVolume)
@@ -85,19 +91,20 @@ public class WheelchairSoundController : MonoBehaviour
     // 에디터에서 시각화 (선택 사항)
     void OnDrawGizmosSelected()
     {
-        if (wheelchairBody != null)
-        {
-            // 현재 속도 표시
-            Vector3 horizontalVelocity = new Vector3(wheelchairBody.velocity.x, 0, wheelchairBody.velocity.z);
-            float currentSpeed = horizontalVelocity.magnitude;
-            
-            // 속도에 따른 색상 계산
-            float speedRatio = Mathf.Clamp01((currentSpeed - minSpeed) / (maxSpeed - minSpeed));
-            Color speedColor = Color.Lerp(Color.green, Color.red, speedRatio);
-            
-            // 속도 벡터 시각화
-            Gizmos.color = speedColor;
-            Gizmos.DrawRay(transform.position, horizontalVelocity.normalized * currentSpeed);
-        }
+        // 현재 속도 표시
+        Vector3 currentPosition = transform.position;
+        Vector3 previousHorizontalPos = new Vector3(previousPosition.x, 0, previousPosition.z);
+        Vector3 currentHorizontalPos = new Vector3(currentPosition.x, 0, currentPosition.z);
+        
+        Vector3 positionDelta = currentHorizontalPos - previousHorizontalPos;
+        float currentSpeed = positionDelta.magnitude / Time.deltaTime;
+        
+        // 속도에 따른 색상 계산
+        float speedRatio = Mathf.Clamp01((currentSpeed - minSpeed) / (maxSpeed - minSpeed));
+        Color speedColor = Color.Lerp(Color.green, Color.red, speedRatio);
+        
+        // 속도 벡터 시각화
+        Gizmos.color = speedColor;
+        Gizmos.DrawRay(transform.position, positionDelta.normalized * currentSpeed);
     }
 } 

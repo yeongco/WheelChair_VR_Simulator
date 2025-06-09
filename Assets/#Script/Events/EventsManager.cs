@@ -15,11 +15,16 @@ public class EventsManager : MonoBehaviour
 
     private void Awake()
     {
-        if (instance != null)
+        if (instance == null)
         {
-            Debug.LogError("Found more than one Game Events Manager in the scene.");
+            instance = this;
+            DontDestroyOnLoad(gameObject);
+            SceneManager.sceneLoaded += OnSceneLoaded;
         }
-        instance = this;
+        else
+        {
+            Destroy(gameObject);
+        }
         //SceneManager.sceneLoaded += OnSceneLoaded;
         player = GameObject.FindWithTag("Player");
         // initialize all events
@@ -27,6 +32,16 @@ public class EventsManager : MonoBehaviour
         playerEvents = new PlayerEvents();
         gameEvents = new GameEvents();
         inputEvents = new InputEvents();
+    }
+
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        player = GameObject.FindWithTag("Player");
+    }
+
+    void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
     /*private void OnSceneLoaded(Scene scene, LoadSceneMode mode)

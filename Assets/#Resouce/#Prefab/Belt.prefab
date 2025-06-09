@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 952489114522371541}
   - component: {fileID: 5828139651196290314}
   m_Layer: 0
-  m_Name: BeltHole
+  m_Name: TanglePegSlot (4)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -233,7 +233,7 @@ GameObject:
   - component: {fileID: 8234007497506291639}
   - component: {fileID: 1990767193233393225}
   - component: {fileID: 3252678682727983699}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: 1_2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1030,57 +1030,57 @@ MonoBehaviour:
   m_SurfaceCollisions: 0
   m_MassScale: 1
   m_SelfCollisions: 0
-  restLength_: 0.3883578
+  restLength_: 0.3883282
   elements:
   - particle1: 0
     particle2: 1
-    restLength: 0.043114852
+    restLength: 0.049043976
     constraintForce: 0
     tearResistance: 1
   - particle1: 1
     particle2: 2
-    restLength: 0.04332704
+    restLength: 0.049158044
     constraintForce: 0
     tearResistance: 1
   - particle1: 2
     particle2: 3
-    restLength: 0.04332381
+    restLength: 0.049103722
     constraintForce: 0
     tearResistance: 1
   - particle1: 3
     particle2: 4
-    restLength: 0.043292142
+    restLength: 0.04917583
     constraintForce: 0
     tearResistance: 1
   - particle1: 4
     particle2: 5
-    restLength: 0.043277327
+    restLength: 0.04917558
     constraintForce: 0
     tearResistance: 1
   - particle1: 5
     particle2: 6
-    restLength: 0.0433507
+    restLength: 0.049068034
     constraintForce: 0
     tearResistance: 1
   - particle1: 6
     particle2: 7
-    restLength: 0.043138627
+    restLength: 0.04911985
     constraintForce: 0
     tearResistance: 1
   - particle1: 7
     particle2: 8
-    restLength: 0.042816103
+    restLength: 0.017840046
     constraintForce: 0
     tearResistance: 1
   - particle1: 8
     particle2: 9
-    restLength: 0.04271718
+    restLength: 0.026643094
     constraintForce: 0
     tearResistance: 1
   _aerodynamicsEnabled: 1
   _drag: 0.05
   _lift: 0.02
-  m_RopeBlueprint: {fileID: 11400000, guid: 61a081ab3ab15be44a8316fa248969ff, type: 2}
+  m_RopeBlueprint: {fileID: 11400000, guid: 60988591d1bc2ce40997225c14eb5442, type: 2}
   tearingEnabled: 0
   tearResistanceMultiplier: 1000
   tearRate: 1
@@ -1106,7 +1106,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   decimation: 0
-  smoothing: 0
+  smoothing: 2
   twist: 0
   indexInSystem: 0
 --- !u!114 &8699372565212758986
@@ -1188,7 +1188,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_CursorMu: 0.1
-  m_SourceMu: 0.921
+  m_SourceMu: 0.503
   direction: 1
 --- !u!114 &8910427590468996582
 MonoBehaviour:
@@ -1202,8 +1202,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4793f08b8350d44db99d1bc98daf625b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  outThreshold: 0.5
-  inThreshold: 0.4
+  outThreshold: 0.08
+  inThreshold: 0.05
   outSpeed: 4
   inSpeed: 2
   maxLength: 10
