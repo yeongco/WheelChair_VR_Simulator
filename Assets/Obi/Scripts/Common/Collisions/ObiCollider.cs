@@ -20,6 +20,7 @@ namespace Obi
         /// The Unity collider that this ObiCollider should mimic.
         /// </summary>
         /// This is automatically set when you first create the ObiCollider component, but you can override it afterwards.
+
         public Collider sourceCollider
         {
             set
