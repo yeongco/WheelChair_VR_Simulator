@@ -192,6 +192,7 @@ public class RopeCursorExample : MonoBehaviour
         return Vector3.Lerp(pos1, pos2, testSourceMu);
     }
     
+#if UNITY_EDITOR
     void OnDrawGizmosSelected()
     {
         if (!Application.isPlaying) return;
@@ -216,8 +217,7 @@ public class RopeCursorExample : MonoBehaviour
     }
 }
 
-// 커스텀 에디터로 더 나은 시각화
-#if UNITY_EDITOR
+// 커스텀 에디터로 더 나은 시각화화
 [UnityEditor.CustomEditor(typeof(RopeCursorExample))]
 public class RopeCursorExampleEditor : UnityEditor.Editor
 {
@@ -240,5 +240,5 @@ public class RopeCursorExampleEditor : UnityEditor.Editor
             UnityEditor.EditorGUILayout.LabelField("현재 줄 길이", example.GetComponent<ObiRope>().restLength.ToString("F2") + "m");
         }
     }
+    #endif 
 }
-#endif 
