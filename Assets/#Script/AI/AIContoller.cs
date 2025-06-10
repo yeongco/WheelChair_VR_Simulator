@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.AI.Navigation;
 using UnityEngine;
 using UnityEngine.AI;
 public enum AIType
@@ -22,6 +23,9 @@ public class AIContoller : MonoBehaviour
     [Header("Standing option")]
     public bool withPhone;
     public bool withMusic;
+    public bool talk1;
+    public bool talk2;
+    public bool wall;
     
     [Space(10)]
     [Header("Sitting option")]
@@ -29,6 +33,8 @@ public class AIContoller : MonoBehaviour
     public bool talking2;
     public bool shakingLeg;
     public bool rubbing;
+    public bool girl;
+    public bool simple;
     
     [Space(10)]
     [Header("Moving option")]
@@ -37,10 +43,14 @@ public class AIContoller : MonoBehaviour
     private NavMeshAgent agent;
     private Animator animator;
     
+    // Rig 제어를 위한 참조
+    private AILookAtPlayer lookAtPlayer;
+    
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
+        lookAtPlayer = GetComponent<AILookAtPlayer>();
     }
     private void Start()
     {
@@ -51,6 +61,7 @@ public class AIContoller : MonoBehaviour
         if (aiType == AIType.standing)
             SetStandingAnimation();
     }
+
 
     private void Update()
     {
@@ -118,6 +129,13 @@ public class AIContoller : MonoBehaviour
         } else if (rubbing)
         {
             animator.SetBool("rubbing", true);
+        } else if (girl)
+        {
+            animator.SetBool("girl", true);
+        }
+        else
+        {
+            animator.SetBool("simple", true);
         }
     }
     
@@ -129,6 +147,40 @@ public class AIContoller : MonoBehaviour
         } else if (withPhone)
         {
             animator.SetBool("phone", true);
+        } else if (talk1)
+        {
+            animator.SetBool("talk1", true);
+        } else if (talk2)
+        {
+            animator.SetBool("talk2", true);
+        } else if (wall)
+        {
+            animator.SetBool("wall", true);
         }
+    }
+    
+    // 목 회전에 영향을 주는 애니메이션 파라미터들을 비활성화
+    void DisableNeckAnimations()
+    {
+        // 만약 애니메이션에 LookAt이나 HeadTurn 같은 파라미터가 있다면 비활성화
+        if (HasParameter("LookAt"))
+            animator.SetBool("LookAt", false);
+        if (HasParameter("HeadTurn"))
+            animator.SetFloat("HeadTurn", 0f);
+        if (HasParameter("NeckRotation"))
+            animator.SetFloat("NeckRotation", 0f);
+            
+        // 필요하다면 여기에 다른 목/머리 관련 파라미터들 추가
+    }
+    
+    // 애니메이터에 특정 파라미터가 있는지 확인하는 헬퍼 함수
+    bool HasParameter(string paramName)
+    {
+        foreach (AnimatorControllerParameter param in animator.parameters)
+        {
+            if (param.name == paramName)
+                return true;
+        }
+        return false;
     }
 }

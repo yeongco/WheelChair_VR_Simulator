@@ -39,6 +39,19 @@ public class Quest : MonoBehaviour
 
     private void OnEnable() //Quest������Ʈ�� Active�Ǹ� ����Ʈ ����
     {
+        List<GameObject> steps = new List<GameObject>();
+
+        // transform의 직계 자식만 순회
+        for (int i = 0; i < transform.childCount; i++)
+        {
+            Transform child = transform.GetChild(i);
+            steps.Add(child.gameObject);
+        }
+
+        questSteps = steps.ToArray();
+        manager = transform.parent.GetComponent<QuestManager>();
+        _audio = GetComponent<AudioSource>();
+        
         for (int i = 0; i < questSteps.Length; i++)
         {
             questSteps[i].GetComponent<QuestStep>().InitializeQuestStep(this);

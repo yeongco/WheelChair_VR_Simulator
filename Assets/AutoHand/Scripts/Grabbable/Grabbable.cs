@@ -911,6 +911,7 @@ namespace Autohand {
         //Adds a reference script to child colliders so they can be grabbed
         void MakeChildrenGrabbable() {
             for(int i = 0; i < transform.childCount; i++) {
+                if(transform.GetChild(i).gameObject.layer == 10) continue;
                 AddChildGrabbableRecursive(transform.GetChild(i));
             }
 
